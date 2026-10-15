@@ -5,7 +5,7 @@ A compact real-time animation engine in Go, driven by JavaScript. Its layers fol
 [中文](README_ZN.md)
 
 
-## Prview
+## Preview
 <img src="animation.gif" align="center"/>
 
 ## Run it
