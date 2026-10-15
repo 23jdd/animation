@@ -17,6 +17,9 @@ func MP4(path string, s *scene.Scene, t *timeline.Timeline, r renderer.Renderer,
 		fps = 60
 	}
 	w, h := r.Size()
+	if output, ok := r.(interface{ OutputSize() (int, int) }); ok {
+		w, h = output.OutputSize()
+	}
 	cmd := exec.Command("ffmpeg", "-y", "-f", "rawvideo", "-pixel_format", "rgba", "-video_size", fmt.Sprintf("%dx%d", w, h), "-framerate", strconv.FormatFloat(fps, 'f', -1, 64), "-i", "-", "-an", "-c:v", "libx264", "-pix_fmt", "yuv420p", path)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

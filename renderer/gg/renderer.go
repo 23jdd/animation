@@ -48,6 +48,9 @@ func New(width, height int) *Renderer {
 }
 func (r *Renderer) Size() (int, int) { return r.width, r.height }
 
+// OutputSize reports raster dimensions independently of logical scene dimensions.
+func (r *Renderer) OutputSize() (int, int) { return r.outputWidth, r.outputHeight }
+
 // SetOutputSize keeps scene coordinates logical while changing raster output.
 func (r *Renderer) SetOutputSize(width, height int) {
 	if width < 1 || height < 1 {

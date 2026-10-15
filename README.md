@@ -2,6 +2,12 @@
 
 A compact real-time animation engine in Go, driven by JavaScript. Its layers follow [`Architecture.md`](Architecture.md): JavaScript describes a scene, a deterministic Go timeline changes mobject state, the renderer rasterizes that state with `gg`, and Ebitengine presents the result.
 
+[中文](README_ZN.md)
+
+
+## Prview
+<img src="animation.gif" align="center"/>
+
 ## Run it
 
 The included `index.js` is a complete example.
@@ -13,6 +19,10 @@ go run . mp4 -width 1280 -height 720 -fps 60 index.js animation.mp4
 ```
 
 MP4 export requires `ffmpeg` on `PATH`. PNG and GIF export have no external runtime dependency. Install the command with `go install ./cmd/anim`, then use `anim` in place of `go run .`.
+
+Use `-scale 2` with `render`, `gif`, or `mp4` to double the output pixel dimensions without changing scene layout. For example: `go run . gif -scale 2 -fps 30 index.js animation-2x.gif` renders the default 1280×720 scene at 2560×1440.
+
+GIF export streams frames to disk, reports progress, and uses an accelerated color lookup with adaptive dominant colors and error diffusion. Memory usage does not grow with the number of frames. GIF supports up to 100 fps; frame delays are distributed to preserve the requested average rate (including 30/60 fps).
 
 The preview includes a responsive EbitenUI animation player below the canvas. Resizing the window reflows the controls while the animation canvas is centered and scaled without changing its aspect ratio. The player provides a draggable timeline, play/pause, restart, frame seeking, playback-speed buttons, current/duration time, playback state, and script-error display. It also watches the script and nearby `.js`, `.json`, `.svg`, font, and image assets. Reloads are transactional: an invalid edit leaves the last good scene visible and shows the script error. The current timeline position is preserved after a successful reload.
 

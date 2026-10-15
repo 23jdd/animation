@@ -26,10 +26,11 @@ const (
 )
 
 type Game struct {
-	Engine *engine.Engine
-	frame  *ebiten.Image
-	width  int
-	height int
+	Engine  *engine.Engine
+	frame   *ebiten.Image
+	width   int
+	height  int
+	uiScale float64
 
 	ui             *ebitenui.UI
 	playButton     *widget.Button
@@ -41,7 +42,7 @@ type Game struct {
 
 func New(e *engine.Engine) *Game {
 	w, h := e.Renderer.Size()
-	g := &Game{Engine: e, frame: ebiten.NewImage(w, h), width: w, height: h}
+	g := &Game{Engine: e, frame: ebiten.NewImage(w, h), width: w, height: h, uiScale: ebiten.Monitor().DeviceScaleFactor()}
 	g.buildUI()
 	return g
 }
@@ -57,7 +58,8 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.NRGBA{R: 12, G: 14, B: 20, A: 255})
 	windowWidth, windowHeight := screen.Bounds().Dx(), screen.Bounds().Dy()
-	x, y, renderWidth, renderHeight := fitCanvasPixels(g.width, g.height, windowWidth, windowHeight-playerHeight)
+	canvasHeight := windowHeight - g.pixels(playerHeight)
+	x, y, renderWidth, renderHeight := fitCanvasPixels(g.width, g.height, windowWidth, canvasHeight)
 	directOutput := false
 	if sizer, ok := g.Engine.Renderer.(renderer.OutputSizer); ok {
 		sizer.SetOutputSize(renderWidth, renderHeight)
@@ -78,7 +80,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if directOutput {
 		op.GeoM.Translate(float64(x), float64(y))
 	} else {
-		x, y, scale := fitCanvas(frameWidth, frameHeight, windowWidth, windowHeight-playerHeight)
+		x, y, scale := fitCanvas(frameWidth, frameHeight, windowWidth, canvasHeight)
 		op.Filter = ebiten.FilterLinear
 		op.GeoM.Scale(scale, scale)
 		op.GeoM.Translate(x, y)
@@ -110,7 +112,19 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	if outsideHeight < 1 {
 		outsideHeight = g.height + playerHeight
 	}
-	return outsideWidth, outsideHeight
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	if scale != g.uiScale {
+		g.uiScale = scale
+		g.buildUI()
+		g.syncPlayerState()
+	}
+	return int(float64(outsideWidth) * scale),
+		int(float64(outsideHeight) * scale)
+}
+
+// pixels converts UI dimensions from device-independent units to screen pixels.
+func (g *Game) pixels(size int) int {
+	return int(math.Round(float64(size) * g.uiScale))
 }
 
 func fitCanvas(sourceWidth, sourceHeight, availableWidth, availableHeight int) (x, y, scale float64) {
@@ -197,23 +211,24 @@ func (g *Game) syncPlayerState() {
 }
 
 func (g *Game) buildUI() {
-	face := loadFace(16)
+	px := g.pixels
+	face := loadFace(16 * g.uiScale)
 	textColor := &widget.LabelColor{Idle: color.NRGBA{R: 226, G: 232, B: 240, A: 255}}
 	root := widget.NewContainer(widget.ContainerOpts.Layout(widget.NewAnchorLayout()))
 	panel := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(uiimage.NewNineSliceColor(color.NRGBA{R: 20, G: 25, B: 36, A: 248})),
-		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical), widget.RowLayoutOpts.Padding(&widget.Insets{Left: 16, Right: 16, Top: 10, Bottom: 8}), widget.RowLayoutOpts.Spacing(7))),
-		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{HorizontalPosition: widget.AnchorLayoutPositionCenter, VerticalPosition: widget.AnchorLayoutPositionEnd, StretchHorizontal: true}), widget.WidgetOpts.MinSize(0, playerHeight)),
+		widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionVertical), widget.RowLayoutOpts.Padding(&widget.Insets{Left: px(16), Right: px(16), Top: px(10), Bottom: px(8)}), widget.RowLayoutOpts.Spacing(px(7)))),
+		widget.ContainerOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{HorizontalPosition: widget.AnchorLayoutPositionCenter, VerticalPosition: widget.AnchorLayoutPositionEnd, StretchHorizontal: true}), widget.WidgetOpts.MinSize(0, px(playerHeight))),
 	)
 
 	g.timelineSlider = widget.NewSlider(
 		widget.SliderOpts.MinMax(0, timelineSteps),
 		widget.SliderOpts.InitialCurrent(0),
 		widget.SliderOpts.Images(sliderTrack(), sliderHandle()),
-		widget.SliderOpts.FixedHandleSize(16),
+		widget.SliderOpts.FixedHandleSize(px(16)),
 		widget.SliderOpts.TrackOffset(0),
 		widget.SliderOpts.PageSizeFunc(func() int { return 100 }),
-		widget.SliderOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}), widget.WidgetOpts.MinSize(0, 18)),
+		widget.SliderOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.RowLayoutData{Stretch: true}), widget.WidgetOpts.MinSize(0, px(18))),
 		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
 			if !args.Dragging && args.Current == g.expectedSlider {
 				return
@@ -223,7 +238,7 @@ func (g *Game) buildUI() {
 		}),
 	)
 
-	controls := widget.NewContainer(widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionHorizontal), widget.RowLayoutOpts.Spacing(8))))
+	controls := widget.NewContainer(widget.ContainerOpts.Layout(widget.NewRowLayout(widget.RowLayoutOpts.Direction(widget.DirectionHorizontal), widget.RowLayoutOpts.Spacing(px(8)))))
 	restart := g.button("Restart", face, func() { g.Engine.Restart(); g.Engine.Play() })
 	back := g.button("-0.25s", face, func() { g.seekBy(-.25) })
 	g.playButton = g.button("Pause", face, g.togglePlayback)
@@ -242,20 +257,20 @@ func (g *Game) buildUI() {
 
 func (g *Game) button(label string, face text.Face, clicked func()) *widget.Button {
 	return widget.NewButton(
-		widget.ButtonOpts.Image(buttonImage()),
+		widget.ButtonOpts.Image(buttonImage(g.pixels(1))),
 		widget.ButtonOpts.Text(label, &face, &widget.ButtonTextColor{Idle: color.NRGBA{R: 241, G: 245, B: 249, A: 255}, Hover: color.White, Pressed: color.White}),
-		widget.ButtonOpts.TextPadding(&widget.Insets{Left: 12, Right: 12, Top: 5, Bottom: 5}),
-		widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.MinSize(64, 30)),
+		widget.ButtonOpts.TextPadding(&widget.Insets{Left: g.pixels(12), Right: g.pixels(12), Top: g.pixels(5), Bottom: g.pixels(5)}),
+		widget.ButtonOpts.WidgetOpts(widget.WidgetOpts.MinSize(g.pixels(64), g.pixels(30))),
 		widget.ButtonOpts.DisableDefaultKeys(),
 		widget.ButtonOpts.ClickedHandler(func(*widget.ButtonClickedEventArgs) { clicked() }),
 	)
 }
 
-func buttonImage() *widget.ButtonImage {
+func buttonImage(border int) *widget.ButtonImage {
 	return &widget.ButtonImage{
-		Idle:    uiimage.NewBorderedNineSliceColor(color.NRGBA{R: 43, G: 52, B: 68, A: 255}, color.NRGBA{R: 71, G: 85, B: 105, A: 255}, 1),
-		Hover:   uiimage.NewBorderedNineSliceColor(color.NRGBA{R: 55, G: 67, B: 87, A: 255}, color.NRGBA{R: 96, G: 165, B: 250, A: 255}, 1),
-		Pressed: uiimage.NewBorderedNineSliceColor(color.NRGBA{R: 30, G: 64, B: 110, A: 255}, color.NRGBA{R: 59, G: 130, B: 246, A: 255}, 1),
+		Idle:    uiimage.NewBorderedNineSliceColor(color.NRGBA{R: 43, G: 52, B: 68, A: 255}, color.NRGBA{R: 71, G: 85, B: 105, A: 255}, border),
+		Hover:   uiimage.NewBorderedNineSliceColor(color.NRGBA{R: 55, G: 67, B: 87, A: 255}, color.NRGBA{R: 96, G: 165, B: 250, A: 255}, border),
+		Pressed: uiimage.NewBorderedNineSliceColor(color.NRGBA{R: 30, G: 64, B: 110, A: 255}, color.NRGBA{R: 59, G: 130, B: 246, A: 255}, border),
 	}
 }
 
