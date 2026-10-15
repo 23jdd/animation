@@ -152,9 +152,20 @@ func (r *Renderer) draw(o mobject.Mobject, parentAlpha float64) {
 		if face != nil {
 			r.dc.SetFontFace(face)
 		}
+		runes := []rune(v.Content)
+		visible := int(math.Ceil(float64(len(runes)) * math.Max(0, math.Min(1, v.Reveal))))
+		if visible > len(runes) {
+			visible = len(runes)
+		}
+		if visible == 0 {
+			break
+		}
+		content := string(runes[:visible])
+		fullWidth, _ := r.dc.MeasureString(v.Content)
+		visibleWidth, _ := r.dc.MeasureString(content)
 		r.dc.Push()
 		r.dc.Scale(1/r.outputScale, 1/r.outputScale)
-		r.dc.DrawStringAnchored(v.Content, 0, 0, .5, .5)
+		r.dc.DrawStringAnchored(content, (visibleWidth-fullWidth)/2, 0, .5, .5)
 		r.dc.Pop()
 	}
 	r.dc.Pop()

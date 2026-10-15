@@ -77,6 +77,20 @@ func (r *Runtime) register() {
 	})
 	set("create", func(c goja.FunctionCall) goja.Value { return r.anim(animation.Create(r.mustObject(c.Argument(0)))) })
 	set("uncreate", func(c goja.FunctionCall) goja.Value { return r.anim(animation.Uncreate(r.mustObject(c.Argument(0)))) })
+	set("write", func(c goja.FunctionCall) goja.Value {
+		target, ok := r.mustObject(c.Argument(0)).(*mobject.Text)
+		if !ok {
+			panic(r.VM.NewTypeError("write expects a text object"))
+		}
+		return r.anim(animation.Write(target))
+	})
+	set("unwrite", func(c goja.FunctionCall) goja.Value {
+		target, ok := r.mustObject(c.Argument(0)).(*mobject.Text)
+		if !ok {
+			panic(r.VM.NewTypeError("unwrite expects a text object"))
+		}
+		return r.anim(animation.Unwrite(target))
+	})
 	set("moveAlongPath", func(c goja.FunctionCall) goja.Value {
 		p, ok := r.mustObject(c.Argument(1)).(*mobject.Path)
 		if !ok {
@@ -89,6 +103,57 @@ func (r *Runtime) register() {
 	})
 	set("replacementTransform", func(c goja.FunctionCall) goja.Value {
 		return r.anim(animation.ReplacementTransform(r.mustObject(c.Argument(0)), r.mustObject(c.Argument(1))))
+	})
+	set("growFromCenter", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.GrowFromCenter(r.mustObject(c.Argument(0))))
+	})
+	set("shrinkToCenter", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.ShrinkToCenter(r.mustObject(c.Argument(0))))
+	})
+	set("growFromPoint", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.GrowFromPoint(r.mustObject(c.Argument(0)), vecDefault(c.Argument(1), geometry.V2(0, 0))))
+	})
+	set("growFromEdge", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.GrowFromEdge(r.mustObject(c.Argument(0)), stringValue(c.Argument(1), "up"), number(c.Argument(2), 150)))
+	})
+	set("spinIn", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.SpinIn(r.mustObject(c.Argument(0))))
+	})
+	set("spinOut", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.SpinOut(r.mustObject(c.Argument(0))))
+	})
+	set("flash", func(c goja.FunctionCall) goja.Value {
+		highlight := color.RGBA{255, 255, 255, 255}
+		if v := c.Argument(1); isDefined(v) {
+			highlight = parseColor(v.String())
+		}
+		return r.anim(animation.Flash(r.mustObject(c.Argument(0)), highlight))
+	})
+	set("indicate", func(c goja.FunctionCall) goja.Value {
+		scale := number(c.Argument(1), 1.3)
+		highlight := color.RGBA{255, 255, 255, 255}
+		if v := c.Argument(2); isDefined(v) {
+			highlight = parseColor(v.String())
+		}
+		return r.anim(animation.Indicate(r.mustObject(c.Argument(0)), scale, highlight))
+	})
+	set("blink", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Blink(r.mustObject(c.Argument(0)), number(c.Argument(1), 1)))
+	})
+	set("wiggle", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Wiggle(r.mustObject(c.Argument(0)), number(c.Argument(1), 0.3), number(c.Argument(2), 2)))
+	})
+	set("wave", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Wave(r.mustObject(c.Argument(0)), number(c.Argument(1), 20)))
+	})
+	set("zoomIn", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.ZoomIn(r.mustObject(c.Argument(0)), number(c.Argument(1), 2.5)))
+	})
+	set("zoomOut", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.ZoomOut(r.mustObject(c.Argument(0)), number(c.Argument(1), 2.5)))
+	})
+	set("focusOn", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.FocusOn(r.mustObject(c.Argument(0)), number(c.Argument(1), 1.25)))
 	})
 	set("sequence", func(c goja.FunctionCall) goja.Value { return r.anim(animation.Sequence(r.animations(c.Arguments)...)) })
 	set("parallel", func(c goja.FunctionCall) goja.Value { return r.anim(animation.Parallel(r.animations(c.Arguments)...)) })

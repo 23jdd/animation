@@ -300,6 +300,16 @@ uncreate(target);
 
 `create` 和 `uncreate` 控制对象的绘制进度以及可见状态。
 
+文字使用 `write` 和 `unwrite`，按 Unicode 字符逐个显示或擦除。中文会按一个汉字一个步骤处理：
+
+```js
+const title = text("你好，动画！", { size: 42 });
+add(title);
+play(write(title), { duration: 1.5, ease: "smooth" });
+wait(0.5);
+play(unwrite(title), { duration: 0.8 });
+```
+
 ### `transform(source, destination)`
 
 插值两个对象的公共状态，包括位置、缩放、旋转、透明度和填充颜色。当前版本不执行不同路径之间的几何 Morph。
@@ -326,6 +336,54 @@ play(moveAlongPath(ball, route), { duration: 2 });
 ```
 
 路径坐标作为对象初始位置的相对偏移使用。通常应以 `["M", 0, 0]` 开始，避免动画开始时发生位置跳变。
+
+### 生长与收缩
+
+```js
+growFromCenter(target);      // 从中心放大并淡入
+shrinkToCenter(target);      // 收缩到中心并淡出
+growFromPoint(target, [0, 0]); // 从指定点放大并移回原位
+growFromEdge(target, "left");  // 从边缘方向滑入，可传 distance 调整起始偏移
+```
+
+`growFromEdge` 的 `edge` 取值 `"left"`、`"right"`、`"up"`、`"down"`，默认 `"up"`；`distance` 默认 `150` 像素。
+
+### 旋转进入与退出
+
+```js
+spinIn(target);   // 旋转一圈进入，同时放大并淡入
+spinOut(target);  // 旋转一圈退出，同时缩小并淡出
+```
+
+### 强调与闪烁
+
+```js
+flash(target);               // 颜色短暂变亮再恢复
+indicate(target, 1.3);       // 短暂放大并着色强调
+blink(target, 2);            // 透明度闪烁 2 次
+```
+
+- `flash(target, color?)`：向 `color`（默认 `#ffffff`）高亮再恢复。
+- `indicate(target, scale?, color?)`：峰值缩放 `scale`（默认 `1.3`），同时向 `color` 着色。
+- `blink(target, times?)`：`times` 为闪烁次数，默认 `1`。
+
+### 摆动与波浪
+
+```js
+wiggle(target, 0.3, 2); // 旋转来回摆动
+wave(group, 20);        // 子对象依次上下起伏，形成波浪
+```
+
+- `wiggle(target, amplitude?, cycles?)`：`amplitude` 为摆动幅度（弧度，默认 `0.3`），`cycles` 为周期数（默认 `2`）。
+- `wave(target, amplitude?)`：对 group 的直接子对象施加相位偏移的上下移动；`amplitude` 默认 `20` 像素。
+
+### 聚焦与缩放
+
+```js
+zoomIn(target, 2.5);   // 从放大状态缩小归位并淡入
+zoomOut(target, 2.5);  // 放大退出并淡出
+focusOn(target, 1.25); // 短暂放大再恢复，用于强调
+```
 
 ## 7. 动画组合
 

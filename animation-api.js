@@ -349,6 +349,20 @@ function create(target) { return animationStub(); }
 function uncreate(target) { return animationStub(); }
 
 /**
+ * Reveals text progressively, one Unicode character at a time.
+ * @param {TextMobject} target Text object to write.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function write(target) { return animationStub(); }
+
+/**
+ * Erases text progressively, one Unicode character at a time.
+ * @param {TextMobject} target Text object to erase.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function unwrite(target) { return animationStub(); }
+
+/**
  * Moves an object along a path.
  *
  * @param {Mobject} target Target object.
@@ -374,6 +388,132 @@ function transform(source, destination) { return animationStub(); }
  * @returns {AnimationHandle} Animation handle.
  */
 function replacementTransform(source, destination) { return animationStub(); }
+
+/**
+ * Scales an object up from zero at its center while fading it in.
+ *
+ * @param {Mobject} target Target object.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function growFromCenter(target) { return animationStub(); }
+
+/**
+ * Scales an object down to zero at its center while fading it out.
+ *
+ * @param {Mobject} target Target object.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function shrinkToCenter(target) { return animationStub(); }
+
+/**
+ * Scales an object up from a fixed point, moving it back into place.
+ *
+ * @param {Mobject} target Target object.
+ * @param {Vec2} [point] Origin point. Defaults to `[0, 0]`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function growFromPoint(target, point) { return animationStub(); }
+
+/**
+ * Grows an object in from a direction.
+ *
+ * @param {Mobject} target Target object.
+ * @param {'left'|'right'|'up'|'down'} [edge] Direction to grow from. Defaults to `'up'`.
+ * @param {number} [distance] Starting offset in pixels. Defaults to `150`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function growFromEdge(target, edge, distance) { return animationStub(); }
+
+/**
+ * Spins an object in from a full turn while scaling it up and fading it in.
+ *
+ * @param {Mobject} target Target object.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function spinIn(target) { return animationStub(); }
+
+/**
+ * Spins an object out with a full turn while scaling it down and fading it out.
+ *
+ * @param {Mobject} target Target object.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function spinOut(target) { return animationStub(); }
+
+/**
+ * Briefly brightens an object's fill and stroke toward a highlight color.
+ *
+ * @param {Mobject} target Target object.
+ * @param {Color} [color] Highlight color. Defaults to `#ffffff`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function flash(target, color) { return animationStub(); }
+
+/**
+ * Draws attention to an object by briefly scaling it up and tinting it.
+ *
+ * @param {Mobject} target Target object.
+ * @param {number} [scale] Peak scale factor. Defaults to `1.3`.
+ * @param {Color} [color] Highlight color. Defaults to `#ffffff`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function indicate(target, scale, color) { return animationStub(); }
+
+/**
+ * Dips an object's opacity to zero one or more times.
+ *
+ * @param {Mobject} target Target object.
+ * @param {number} [times] Number of blinks. Defaults to `1`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function blink(target, times) { return animationStub(); }
+
+/**
+ * Wobbles an object's rotation around its resting angle.
+ *
+ * @param {Mobject} target Target object.
+ * @param {number} [amplitude] Wobble amplitude in radians. Defaults to `0.3`.
+ * @param {number} [cycles] Number of wobble cycles. Defaults to `2`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function wiggle(target, amplitude, cycles) { return animationStub(); }
+
+/**
+ * Moves a group's children (or a single object) up and down with a phase
+ * offset, producing a traveling wave.
+ *
+ * @param {Mobject} target Target object or group.
+ * @param {number} [amplitude] Vertical amplitude in pixels. Defaults to `20`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function wave(target, amplitude) { return animationStub(); }
+
+/**
+ * Scales an object down from an enlarged size into place while fading it in.
+ *
+ * @param {Mobject} target Target object.
+ * @param {number} [fromScale] Starting scale factor. Defaults to `2.5`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function zoomIn(target, fromScale) { return animationStub(); }
+
+/**
+ * Scales an object up to an enlarged size while fading it out.
+ *
+ * @param {Mobject} target Target object.
+ * @param {number} [toScale] Ending scale factor. Defaults to `2.5`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function zoomOut(target, toScale) { return animationStub(); }
+
+/**
+ * Briefly zooms an object in and back out to draw attention to it.
+ *
+ * @param {Mobject} target Target object.
+ * @param {number} [scale] Peak scale factor. Defaults to `1.25`.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function focusOn(target, scale) { return animationStub(); }
 
 /**
  * Runs animations one after another.

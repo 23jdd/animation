@@ -56,9 +56,10 @@ type Text struct {
 	Size        float64
 	Font        string
 	FontVersion int64
+	Reveal      float64
 }
 
 func NewText(content string, size float64) *Text {
-	return &Text{BaseMobject: NewBase(), Content: content, Size: size}
+	return &Text{BaseMobject: NewBase(), Content: content, Size: size, Reveal: 1}
 }
 func (m *Text) Update(t, dt float64) { Update(m, t, dt) }

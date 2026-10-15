@@ -54,6 +54,27 @@ func Uncreate(target mobject.Mobject) Animation {
 	var from float64
 	return New(1, Linear, func(float64) { from = target.Base().DrawProgress }, func(t float64) { target.Base().DrawProgress = from * (1 - t) }, func(float64) { target.Base().IsVisible = false }, func(float64) { target.Base().DrawProgress = from; target.Base().IsVisible = true })
 }
+
+// Write reveals a text object progressively by Unicode code point.
+func Write(target *mobject.Text) Animation {
+	var from float64
+	return New(1, Linear, func(float64) {
+		from = target.Reveal
+		target.Reveal = 0
+		target.Base().IsVisible = true
+	}, func(t float64) { target.Reveal = from + (1-from)*t }, nil,
+		func(float64) { target.Reveal = from })
+}
+
+// Unwrite hides a text object progressively by Unicode code point.
+func Unwrite(target *mobject.Text) Animation {
+	var from float64
+	return New(1, Linear, func(float64) { from = target.Reveal },
+		func(t float64) { target.Reveal = from * (1 - t) },
+		func(float64) { target.Base().IsVisible = false },
+		func(float64) { target.Reveal = from; target.Base().IsVisible = true })
+}
+
 func ColorTo(target mobject.Mobject, to color.RGBA) Animation {
 	var from color.RGBA
 	lerp := func(a, b uint8, t float64) uint8 { return uint8(math.Round(float64(a) + (float64(b)-float64(a))*t)) }

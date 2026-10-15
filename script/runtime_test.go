@@ -120,3 +120,47 @@ func TestTextRejectsInvalidCustomFont(t *testing.T) {
 		t.Fatal("expected invalid font error")
 	}
 }
+
+func TestEffectsAnimationsRegisterAndAnimate(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "effects.js")
+	source := `
+const c = circle({radius: 20});
+const g = group(circle(), circle(), circle());
+add(c, g);
+play(growFromCenter(c));
+play(shrinkToCenter(c));
+play(growFromPoint(c, [100, 0]));
+play(growFromEdge(c, "left", 80));
+play(spinIn(c));
+play(spinOut(c));
+play(flash(c, "#ffff00"));
+play(indicate(c, 1.5, "#00ffff"));
+play(blink(c, 3));
+play(wiggle(c, 0.4, 3));
+play(wave(g, 25));
+play(zoomIn(c, 3));
+play(zoomOut(c, 3));
+play(focusOn(c, 1.4));
+`
+	if err := os.WriteFile(path, []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := script.LoadFile(path, 640, 360)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Every effect defaults to a one-second duration.
+	if got := r.Timeline.Duration(); got != 14 {
+		t.Fatalf("duration: %v", got)
+	}
+	// At t=0.5 the first effect (growFromCenter) is halfway done.
+	r.Timeline.Seek(0.5)
+	c := r.Scene.Snapshot()[0]
+	if s := c.Base().Transform.Scale; s.X != 0.5 || s.Y != 0.5 {
+		t.Fatalf("growFromCenter scale at t=0.5: %+v", s)
+	}
+	// Seek to the end and confirm every effect finished without error.
+	r.Timeline.Seek(r.Timeline.Duration())
+}
+

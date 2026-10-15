@@ -144,9 +144,25 @@ play(moveTo(dot, [300, 0]), {
 | `colorTo` | 将颜色过渡到指定颜色 |
 | `create` | 播放对象创建动画 |
 | `uncreate` | 播放对象消除动画 |
+| `write` | 逐字显示文本 |
+| `unwrite` | 逐字擦除文本 |
 | `transform` | 从一个对象变换为另一个对象 |
 | `replacementTransform` | 使用变换动画替换对象 |
 | `moveAlongPath` | 沿指定路径移动 |
+| `growFromCenter` | 从中心放大进入 |
+| `shrinkToCenter` | 收缩到中心退出 |
+| `growFromPoint` | 从指定点放大进入 |
+| `growFromEdge` | 从边缘方向滑入 |
+| `spinIn` | 旋转一圈进入 |
+| `spinOut` | 旋转一圈退出 |
+| `flash` | 颜色短暂高亮 |
+| `indicate` | 放大并着色强调 |
+| `blink` | 透明度闪烁 |
+| `wiggle` | 旋转摆动 |
+| `wave` | 子对象波浪起伏 |
+| `zoomIn` | 从放大状态缩小归位 |
+| `zoomOut` | 放大退出 |
+| `focusOn` | 短暂放大强调 |
 
 ### 动画组合
 
