@@ -311,13 +311,12 @@ wait(0.5);
 play(unwrite(title), { duration: 0.8 });
 ```
 
-光标颜色默认与文字填充色一致，也可以用第二个参数指定，或传 `null` 关闭。第三个参数可设置文字的整体透明度（默认 `1`）：
+光标颜色默认与文字填充色一致，也可以用第二个参数指定，或传 `null` 关闭。第三个参数直接设置对象的透明度（等同 `title.opacity = 0.5`）：
 
 ```js
-play(write(title, "#f97316"));      // 橙色光标
-play(write(title, null));           // 无光标
-play(write(title, null, 0.5));      // 无光标，文字半透明
-play(write(title, "#f97316", 0.6)); // 橙色光标，文字 60% 透明
+play(write(title, "#f97316")); // 橙色光标
+play(write(title, null));      // 无光标
+play(write(title, null, 0.5)); // 无光标，同时把文字透明度设为 0.5
 ```
 
 ### `drawLine(line, tip?)`

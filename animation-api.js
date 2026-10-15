@@ -363,7 +363,7 @@ function uncreate(target) { return animationStub(); }
  *
  * @param {TextMobject} target Text object to write.
  * @param {Color} [cursor] Caret color. Defaults to the text fill color; pass `null` to hide the caret.
- * @param {number} [opacity] Overall opacity while writing, between `0` and `1`. Defaults to `1`.
+ * @param {number} [opacity] Sets the object's opacity directly (same as `target.opacity = opacity`).
  * @returns {AnimationHandle} Animation handle.
  */
 function write(target, cursor, opacity) { return animationStub(); }
@@ -374,10 +374,9 @@ function write(target, cursor, opacity) { return animationStub(); }
  *
  * @param {TextMobject} target Text object to erase.
  * @param {Color} [cursor] Caret color. Defaults to the text fill color; pass `null` to hide the caret.
- * @param {number} [opacity] Overall opacity while erasing, between `0` and `1`. Defaults to `1`.
  * @returns {AnimationHandle} Animation handle.
  */
-function unwrite(target, cursor, opacity) { return animationStub(); }
+function unwrite(target, cursor) { return animationStub(); }
 
 /**
  * Draws a line progressively from its start to its end.

@@ -13,11 +13,10 @@ add(background);
 
 // 标题 — 橙色光标
 const title = text("TYPEWRITER", { position: [0, -200], size: 40, fill: orange });
-title.opacity=0
+title.opacity=0.5
 add(title);
 
-play(write(title, orange), { duration: 1.2, ease: "linear" });
-
+play(write(title, orange,1.0), { duration: 1.2, ease: "linear" });
 // 中文一行 — 光标默认与文字同色
 const line1 = text("用代码，雕刻时间。", { position: [0, -110], size: 30, fill: ink });
 add(line1);
