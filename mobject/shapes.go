@@ -1,6 +1,11 @@
 package mobject
 
-import "github.com/23dd/animation/geometry"
+import (
+	"image/color"
+	"math"
+
+	"github.com/23dd/animation/geometry"
+)
 
 type Circle struct {
 	BaseMobject
@@ -57,9 +62,20 @@ type Text struct {
 	Font        string
 	FontVersion int64
 	Reveal      float64
+	// Cursor, when non-zero, renders a blinking typewriter caret after the
+	// last revealed character. CursorVisible is the per-frame blink state.
+	Cursor        color.RGBA
+	CursorVisible bool
 }
 
 func NewText(content string, size float64) *Text {
 	return &Text{BaseMobject: NewBase(), Content: content, Size: size, Reveal: 1}
 }
-func (m *Text) Update(t, dt float64) { Update(m, t, dt) }
+func (m *Text) Update(t, dt float64) {
+	if m.Cursor.A > 0 {
+		m.CursorVisible = math.Mod(t, 1.0) < 0.5
+	} else {
+		m.CursorVisible = false
+	}
+	Update(m, t, dt)
+}

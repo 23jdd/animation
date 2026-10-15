@@ -164,6 +164,41 @@ play(focusOn(c, 1.4));
 	r.Timeline.Seek(r.Timeline.Duration())
 }
 
+func TestWriteSetsTypewriterCaret(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "caret.js")
+	source := `const t = text("Hi"); add(t); play(write(t), {duration: 1});`
+	if err := os.WriteFile(path, []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := script.LoadFile(path, 320, 180)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Timeline.Seek(0.5)
+	text := r.Scene.Snapshot()[0].(*mobject.Text)
+	if text.Reveal != 0.5 {
+		t.Fatalf("write should reveal halfway at t=0.5, got %v", text.Reveal)
+	}
+	if text.Cursor.A == 0 {
+		t.Fatal("write should set a caret color")
+	}
+	// The blink state follows the timeline time via Text.Update.
+	r.Scene.Update(0.25, 0.25)
+	if !text.CursorVisible {
+		t.Fatal("caret should be visible at t=0.25")
+	}
+	r.Scene.Update(0.75, 0.5)
+	if text.CursorVisible {
+		t.Fatal("caret should be hidden at t=0.75")
+	}
+	// The caret disappears once the text is fully written.
+	r.Timeline.Seek(1.0)
+	if text.Cursor.A != 0 {
+		t.Fatal("caret should be cleared after write completes")
+	}
+}
+
 func TestDrawLineEffects(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "draw.js")

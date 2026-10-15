@@ -349,18 +349,24 @@ function create(target) { return animationStub(); }
 function uncreate(target) { return animationStub(); }
 
 /**
- * Reveals text progressively, one Unicode character at a time.
+ * Reveals text progressively, one Unicode character at a time, with a blinking
+ * typewriter caret following the last character.
+ *
  * @param {TextMobject} target Text object to write.
+ * @param {Color} [cursor] Caret color. Defaults to the text fill color; pass `null` to hide the caret.
  * @returns {AnimationHandle} Animation handle.
  */
-function write(target) { return animationStub(); }
+function write(target, cursor) { return animationStub(); }
 
 /**
- * Erases text progressively, one Unicode character at a time.
+ * Erases text progressively, one Unicode character at a time, with a blinking
+ * typewriter caret following the last character.
+ *
  * @param {TextMobject} target Text object to erase.
+ * @param {Color} [cursor] Caret color. Defaults to the text fill color; pass `null` to hide the caret.
  * @returns {AnimationHandle} Animation handle.
  */
-function unwrite(target) { return animationStub(); }
+function unwrite(target, cursor) { return animationStub(); }
 
 /**
  * Draws a line progressively from its start to its end.

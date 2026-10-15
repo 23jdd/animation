@@ -300,7 +300,7 @@ uncreate(target);
 
 `create` 和 `uncreate` 控制对象的绘制进度以及可见状态。
 
-文字使用 `write` 和 `unwrite`，按 Unicode 字符逐个显示或擦除。中文会按一个汉字一个步骤处理：
+文字使用 `write` 和 `unwrite`，按 Unicode 字符逐个显示或擦除。中文会按一个汉字一个步骤处理，每个字符出现时会淡入，并且末尾有一个闪烁的打字机光标跟随：
 
 ```js
 const title = text("你好，动画！", { size: 42 });
@@ -308,6 +308,13 @@ add(title);
 play(write(title), { duration: 1.5, ease: "smooth" });
 wait(0.5);
 play(unwrite(title), { duration: 0.8 });
+```
+
+光标颜色默认与文字填充色一致，也可以用第二个参数指定，或传 `null` 关闭：
+
+```js
+play(write(title, "#f97316")); // 橙色光标
+play(write(title, null));      // 无光标
 ```
 
 ### `drawLine(line, tip?)`

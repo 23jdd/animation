@@ -175,6 +175,37 @@ func TestTextRevealFadesInCharacter(t *testing.T) {
 	}
 }
 
+func TestTextCaretRendersWhenVisible(t *testing.T) {
+	label := mobject.NewText("M", 64)
+	label.Fill = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	label.Cursor = color.RGBA{R: 255, A: 255} // red caret
+	label.Reveal = 0.5
+	s := scene.New(200, 100)
+	s.Add(label)
+	r := New(200, 100)
+
+	hasRed := func(img image.Image) bool {
+		for y := 0; y < img.Bounds().Dy(); y++ {
+			for x := 0; x < img.Bounds().Dx(); x++ {
+				c := color.RGBAModel.Convert(img.At(x, y)).(color.RGBA)
+				if c.R > 200 && c.G < 100 && c.B < 100 {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	label.CursorVisible = true
+	if !hasRed(r.Render(s)) {
+		t.Fatal("expected a red caret pixel when visible")
+	}
+	label.CursorVisible = false
+	if hasRed(r.Render(s)) {
+		t.Fatal("expected no caret pixel when hidden")
+	}
+}
+
 func TestOutputSizePreservesLogicalCanvasSize(t *testing.T) {
 	r := New(1280, 720)
 	r.SetOutputSize(800, 450)

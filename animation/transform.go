@@ -55,24 +55,38 @@ func Uncreate(target mobject.Mobject) Animation {
 	return New(1, Linear, func(float64) { from = target.Base().DrawProgress }, func(t float64) { target.Base().DrawProgress = from * (1 - t) }, func(float64) { target.Base().IsVisible = false }, func(float64) { target.Base().DrawProgress = from; target.Base().IsVisible = true })
 }
 
-// Write reveals a text object progressively by Unicode code point.
-func Write(target *mobject.Text) Animation {
+// Write reveals a text object progressively by Unicode code point. A non-zero
+// cursor color shows a blinking typewriter caret while the text is being written.
+func Write(target *mobject.Text, cursor color.RGBA) Animation {
 	var from float64
+	var fromCursor color.RGBA
 	return New(1, Linear, func(float64) {
 		from = target.Reveal
+		fromCursor = target.Cursor
 		target.Reveal = 0
+		target.Cursor = cursor
 		target.Base().IsVisible = true
-	}, func(t float64) { target.Reveal = from + (1-from)*t }, nil,
-		func(float64) { target.Reveal = from })
+	}, func(t float64) { target.Reveal = t },
+		func(float64) { target.Cursor = color.RGBA{} },
+		func(float64) {
+			target.Reveal = from
+			target.Cursor = fromCursor
+		})
 }
 
-// Unwrite hides a text object progressively by Unicode code point.
-func Unwrite(target *mobject.Text) Animation {
+// Unwrite hides a text object progressively by Unicode code point. A non-zero
+// cursor color shows a blinking typewriter caret while the text is being erased.
+func Unwrite(target *mobject.Text, cursor color.RGBA) Animation {
 	var from float64
-	return New(1, Linear, func(float64) { from = target.Reveal },
+	var fromCursor color.RGBA
+	return New(1, Linear, func(float64) {
+		from = target.Reveal
+		fromCursor = target.Cursor
+		target.Cursor = cursor
+	},
 		func(t float64) { target.Reveal = from * (1 - t) },
-		func(float64) { target.Base().IsVisible = false },
-		func(float64) { target.Reveal = from; target.Base().IsVisible = true })
+		func(float64) { target.Base().IsVisible = false; target.Cursor = color.RGBA{} },
+		func(float64) { target.Reveal = from; target.Cursor = fromCursor; target.Base().IsVisible = true })
 }
 
 func ColorTo(target mobject.Mobject, to color.RGBA) Animation {

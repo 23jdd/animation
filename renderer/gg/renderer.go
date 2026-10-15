@@ -168,23 +168,35 @@ func (r *Renderer) draw(o mobject.Mobject, parentAlpha float64) {
 			frac = 0
 		}
 		fullWidth, _ := r.dc.MeasureString(v.Content)
+		prefixWidth := 0.0
+		if full > 0 {
+			prefixWidth, _ = r.dc.MeasureString(string(runes[:full]))
+		}
+		currentWidth := 0.0
+		if full < total {
+			currentWidth, _ = r.dc.MeasureString(string(runes[full]))
+		}
 		r.dc.Push()
 		r.dc.Scale(1/r.outputScale, 1/r.outputScale)
 		// Fully revealed characters are drawn at full opacity.
 		if full > 0 {
-			prefix := string(runes[:full])
-			prefixWidth, _ := r.dc.MeasureString(prefix)
 			r.setColor(withAlpha(b.Fill, alpha))
-			r.dc.DrawStringAnchored(prefix, (prefixWidth-fullWidth)/2, 0, .5, .5)
+			r.dc.DrawStringAnchored(string(runes[:full]), (prefixWidth-fullWidth)/2, 0, .5, .5)
 		}
 		// The current character fades in as the reveal value advances past it.
 		if full < total && frac > 0 {
-			current := string(runes[full])
-			currentWidth, _ := r.dc.MeasureString(current)
-			prefixWidth, _ := r.dc.MeasureString(string(runes[:full]))
 			cx := prefixWidth + currentWidth/2 - fullWidth/2
 			r.setColor(withAlpha(b.Fill, alpha*frac))
-			r.dc.DrawStringAnchored(current, cx, 0, .5, .5)
+			r.dc.DrawStringAnchored(string(runes[full]), cx, 0, .5, .5)
+		}
+		// Blinking typewriter caret follows the last revealed character.
+		if v.Cursor.A > 0 && v.CursorVisible && full < total {
+			cursorX := prefixWidth + currentWidth - fullWidth/2
+			halfH := v.Size * r.outputScale / 2
+			r.setColor(withAlpha(v.Cursor, alpha))
+			r.dc.SetLineWidth(math.Max(1, v.Size*0.06) * r.outputScale)
+			r.dc.DrawLine(cursorX, -halfH, cursorX, halfH)
+			r.dc.Stroke()
 		}
 		r.dc.Pop()
 	}

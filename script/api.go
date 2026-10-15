@@ -100,14 +100,14 @@ func (r *Runtime) register() {
 		if !ok {
 			panic(r.VM.NewTypeError("write expects a text object"))
 		}
-		return r.anim(animation.Write(target))
+		return r.anim(animation.Write(target, cursorColor(c.Argument(1), target.Fill)))
 	})
 	set("unwrite", func(c goja.FunctionCall) goja.Value {
 		target, ok := r.mustObject(c.Argument(0)).(*mobject.Text)
 		if !ok {
 			panic(r.VM.NewTypeError("unwrite expects a text object"))
 		}
-		return r.anim(animation.Unwrite(target))
+		return r.anim(animation.Unwrite(target, cursorColor(c.Argument(1), target.Fill)))
 	})
 	set("moveAlongPath", func(c goja.FunctionCall) goja.Value {
 		p, ok := r.mustObject(c.Argument(1)).(*mobject.Path)
@@ -481,4 +481,17 @@ func parseColor(s string) color.RGBA {
 		return color.RGBA{255, 255, 255, 255}
 	}
 	return color.RGBA{uint8(v >> 24), uint8(v >> 16), uint8(v >> 8), uint8(v)}
+}
+
+// cursorColor resolves the caret color for write/unwrite. Undefined uses the
+// fallback (the text fill), null disables the caret, and any other value is
+// parsed as a color.
+func cursorColor(v goja.Value, fallback color.RGBA) color.RGBA {
+	if v == nil || goja.IsUndefined(v) {
+		return fallback
+	}
+	if goja.IsNull(v) {
+		return color.RGBA{}
+	}
+	return parseColor(v.String())
 }
