@@ -57,21 +57,35 @@ func Uncreate(target mobject.Mobject) Animation {
 
 // Write reveals a text object progressively by Unicode code point. A non-zero
 // cursor color shows a blinking typewriter caret while the text is being written.
-func Write(target *mobject.Text, cursor color.RGBA) Animation {
+func Write(target *mobject.Text, cursor color.RGBA, opacity float64) Animation {
 	var from float64
 	var fromCursor color.RGBA
-	return New(1, Linear, func(float64) {
-		from = target.Reveal
-		fromCursor = target.Cursor
-		target.Reveal = 0
-		target.Cursor = cursor
-		target.Base().IsVisible = true
-	}, func(t float64) { target.Reveal = t },
-		func(float64) { target.Cursor = color.RGBA{} },
+	var fromOpacity float64
+
+	return New(1, Linear,
+		func(float64) {
+			from = target.Reveal
+			fromCursor = target.Cursor
+			fromOpacity = target.Base().Opacity
+
+			target.Reveal = 0
+			target.Cursor = cursor
+			target.Base().IsVisible = true
+			target.Base().Opacity = opacity // 动画开始时立即设为新值
+		},
+		func(t float64) {
+			target.Reveal = t
+		},
+		func(float64) {
+			target.Reveal = 1
+			target.Cursor = color.RGBA{}
+		},
 		func(float64) {
 			target.Reveal = from
 			target.Cursor = fromCursor
-		})
+			target.Base().Opacity = fromOpacity
+		},
+	)
 }
 
 // Unwrite hides a text object progressively by Unicode code point. A non-zero

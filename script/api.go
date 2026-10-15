@@ -103,11 +103,8 @@ func (r *Runtime) register() {
 		if !ok {
 			panic(r.VM.NewTypeError("write expects a text object"))
 		}
-		// An optional third argument sets the object's opacity directly.
-		if v := c.Argument(2); isDefined(v) {
-			target.Base().Opacity = v.ToFloat()
-		}
-		return r.anim(animation.Write(target, cursorColor(c.Argument(1), target.Fill)))
+		opa := c.Argument(2).ToFloat()
+		return r.anim(animation.Write(target, cursorColor(c.Argument(1), target.Fill), opa))
 	})
 	set("unwrite", func(c goja.FunctionCall) goja.Value {
 		target, ok := r.mustObject(c.Argument(0)).(*mobject.Text)

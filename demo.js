@@ -13,31 +13,23 @@ add(background);
 
 // 标题 — 橙色光标
 const title = text("TYPEWRITER", { position: [0, -200], size: 40, fill: orange });
-title.opacity=0.5
+title.opacity=0
 add(title);
 
-play(write(title, orange,1.0), { duration: 1.2, ease: "linear" });
+play(write(title, orange,1), { duration: 1.2, ease: "linear" });
 // 中文一行 — 光标默认与文字同色
 const line1 = text("用代码，雕刻时间。", { position: [0, -110], size: 30, fill: ink });
+line1.opacity=0
 add(line1);
+play(write(line1,ink,1), { duration: 1.8, ease: "linear" });
 
-play(write(line1), { duration: 1.8, ease: "linear" });
-
-// 中文二行 — 绿色光标
-const line2 = text("每一帧，都是确定的。", { position: [0, -40], size: 30, fill: green });
-add(line2);
-play(write(line2, green), { duration: 1.8, ease: "linear" });
 
 // 英文一行 — 默认光标
-const line3 = text("A study in continuous motion.", { position: [0, 30], size: 26, fill: dim });
-add(line3);
-play(write(line3), { duration: 2, ease: "linear" });
 
 wait(0.6);
 
 // 依次擦除（unwrite 也带光标）
-play(unwrite(line3), { duration: 0.9, ease: "linear" });
-play(unwrite(line2), { duration: 0.9, ease: "linear" });
+
 play(unwrite(line1), { duration: 0.9, ease: "linear" });
 play(unwrite(title), { duration: 0.7, ease: "linear" });
 
