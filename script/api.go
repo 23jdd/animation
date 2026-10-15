@@ -72,6 +72,9 @@ func (r *Runtime) register() {
 	set("opacityTo", func(c goja.FunctionCall) goja.Value {
 		return r.anim(animation.OpacityTo(r.mustObject(c.Argument(0)), c.Argument(1).ToFloat()))
 	})
+	set("fadeTo", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.OpacityTo(r.mustObject(c.Argument(0)), c.Argument(1).ToFloat()))
+	})
 	set("colorTo", func(c goja.FunctionCall) goja.Value {
 		return r.anim(animation.ColorTo(r.mustObject(c.Argument(0)), parseColor(c.Argument(1).String())))
 	})
@@ -100,14 +103,14 @@ func (r *Runtime) register() {
 		if !ok {
 			panic(r.VM.NewTypeError("write expects a text object"))
 		}
-		return r.anim(animation.Write(target, cursorColor(c.Argument(1), target.Fill)))
+		return r.anim(animation.Write(target, cursorColor(c.Argument(1), target.Fill), number(c.Argument(2), 1)))
 	})
 	set("unwrite", func(c goja.FunctionCall) goja.Value {
 		target, ok := r.mustObject(c.Argument(0)).(*mobject.Text)
 		if !ok {
 			panic(r.VM.NewTypeError("unwrite expects a text object"))
 		}
-		return r.anim(animation.Unwrite(target, cursorColor(c.Argument(1), target.Fill)))
+		return r.anim(animation.Unwrite(target, cursorColor(c.Argument(1), target.Fill), number(c.Argument(2), 1)))
 	})
 	set("moveAlongPath", func(c goja.FunctionCall) goja.Value {
 		p, ok := r.mustObject(c.Argument(1)).(*mobject.Path)

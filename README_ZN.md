@@ -141,6 +141,7 @@ play(moveTo(dot, [300, 0]), {
 | `fadeIn` | 淡入 |
 | `fadeOut` | 淡出 |
 | `opacityTo` | 将透明度变化到指定值 |
+| `fadeTo` | 将透明度淡入/淡出到指定值（`opacityTo` 的别名） |
 | `colorTo` | 将颜色过渡到指定颜色 |
 | `create` | 播放对象创建动画 |
 | `uncreate` | 播放对象消除动画 |

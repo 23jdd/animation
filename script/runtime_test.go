@@ -199,6 +199,24 @@ func TestWriteSetsTypewriterCaret(t *testing.T) {
 	}
 }
 
+func TestWriteSetsOpacity(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "opacity.js")
+	source := `const t = text("Hi"); add(t); play(write(t, null, 0.4), {duration: 1});`
+	if err := os.WriteFile(path, []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := script.LoadFile(path, 320, 180)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Timeline.Seek(0.5)
+	text := r.Scene.Snapshot()[0].(*mobject.Text)
+	if text.Base().Opacity != 0.4 {
+		t.Fatalf("opacity: %v", text.Base().Opacity)
+	}
+}
+
 func TestDrawLineEffects(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "draw.js")
