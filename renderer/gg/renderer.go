@@ -216,7 +216,8 @@ func (r *Renderer) paint(b *mobject.BaseMobject, alpha float64) {
 	if b.Stroke.A > 0 && b.StrokeWidth > 0 {
 		r.stroke(b, alpha)
 	} else {
-		r.dc.NewSubPath()
+		// FillPreserve leaves geometry behind; the next object must not reuse it.
+		r.dc.ClearPath()
 	}
 }
 func (r *Renderer) stroke(b *mobject.BaseMobject, alpha float64) {

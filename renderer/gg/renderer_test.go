@@ -12,6 +12,29 @@ import (
 	"github.com/23dd/animation/scene"
 )
 
+func TestUnstrokedBackgroundKeepsItsColor(t *testing.T) {
+	for _, strokeWidth := range []float64{0, 2} {
+		s := scene.New(100, 100)
+		background := mobject.NewRectangle(100, 100)
+		green := color.RGBA{R: 0x12, G: 0x56, B: 0x37, A: 255}
+		background.Fill = green
+		background.Stroke = color.RGBA{}
+		background.StrokeWidth = strokeWidth
+		ball := mobject.NewCircle(10)
+		ball.Fill = color.RGBA{B: 255, A: 255}
+		s.Add(background, ball)
+		r := New(100, 100)
+		for _, opacity := range []float64{1, 0.5, 0, 1} {
+			ball.Opacity = opacity
+			img := r.Render(s)
+			got := color.RGBAModel.Convert(img.At(10, 10)).(color.RGBA)
+			if got != green {
+				t.Fatalf("strokeWidth=%v opacity=%v: background=%v, want %v", strokeWidth, opacity, got, green)
+			}
+		}
+	}
+}
+
 func TestRenderCustomTrueTypeFont(t *testing.T) {
 	dir := t.TempDir()
 	fontPath := filepath.Join(dir, "custom.ttf")
