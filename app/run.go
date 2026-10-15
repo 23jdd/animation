@@ -84,6 +84,9 @@ func runPreview(args []string) error {
 		return err
 	}
 	renderer := ggrenderer.New(o.width, o.height)
+	if err := renderer.Err(); err != nil {
+		return fmt.Errorf("initialize renderer: %w", err)
+	}
 	e := engine.New(rt.Scene, rt.Timeline, renderer)
 	reloader := &hotreload.Reloader{Path: rest[0], Width: o.width, Height: o.height, Engine: e}
 	watcher, err := hotreload.New(rest[0], 150*time.Millisecond, reloader.Reload)
@@ -114,6 +117,9 @@ func runRender(args []string, kind string) error {
 		return errors.New("MP4 output width and height must be even")
 	}
 	renderer := ggrenderer.New(o.width, o.height)
+	if err := renderer.Err(); err != nil {
+		return fmt.Errorf("initialize renderer: %w", err)
+	}
 	renderer.SetOutputSize(int(outputWidth), int(outputHeight))
 	switch kind {
 	case "png":

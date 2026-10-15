@@ -21,7 +21,10 @@ func TestPlayButtonPauseResumeAndReplay(t *testing.T) {
 	tl := timeline.New()
 	tl.Wait(2)
 	e := engine.New(scene.New(320, 180), tl, testRenderer{320, 180})
-	g := New(e)
+	g, err := New(e)
+	if err != nil {
+		t.Fatal(err)
+	}
 	g.playButton.Validate()
 
 	g.playButton.ClickedEvent.Fire(&widget.ButtonClickedEventArgs{Button: g.playButton})

@@ -11,7 +11,9 @@ import (
 
 func PNG(path string, s *scene.Scene, t *timeline.Timeline, r renderer.Renderer, at float64) error {
 	t.Seek(at)
-	s.Update(t.Time, 0)
+	if err := s.Update(t.Time, 0); err != nil {
+		return fmt.Errorf("update scene: %w", err)
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err

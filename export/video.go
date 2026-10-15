@@ -33,7 +33,11 @@ func MP4(path string, s *scene.Scene, t *timeline.Timeline, r renderer.Renderer,
 	frames := int(t.Duration()*fps) + 1
 	for i := 0; i < frames; i++ {
 		t.Seek(float64(i) / fps)
-		s.Update(t.Time, 1/fps)
+		if err = s.Update(t.Time, 1/fps); err != nil {
+			_ = stdin.Close()
+			_ = cmd.Wait()
+			return fmt.Errorf("update scene: %w", err)
+		}
 		src := r.Render(s)
 		dst := image.NewRGBA(image.Rect(0, 0, w, h))
 		draw.Draw(dst, dst.Bounds(), src, src.Bounds().Min, draw.Src)

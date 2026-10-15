@@ -1,6 +1,7 @@
 package gg
 
 import (
+	"errors"
 	"image"
 	"image/color"
 	"math"
@@ -24,6 +25,7 @@ type Renderer struct {
 	fallbackFont              *opentype.Font
 	fonts                     map[fontSourceKey]*opentype.Font
 	faces                     map[fontFaceKey]font.Face
+	initErr                   error
 }
 
 type fontSourceKey struct {
@@ -37,16 +39,15 @@ type fontFaceKey struct {
 
 func New(width, height int) *Renderer {
 	primary, err := opentype.Parse(fontasset.JetBrainsMonoRegular())
-	if err != nil {
-		panic("parse embedded JetBrains Mono: " + err.Error())
-	}
+	primaryErr := err
 	fallback, err := opentype.Parse(fontasset.SourceHanSansSCRegular())
-	if err != nil {
-		panic("parse embedded Source Han Sans SC fallback: " + err.Error())
-	}
-	return &Renderer{width: width, height: height, outputWidth: width, outputHeight: height, outputScale: 1, dc: base.NewContext(width, height), primaryFont: primary, fallbackFont: fallback, fonts: make(map[fontSourceKey]*opentype.Font), faces: make(map[fontFaceKey]font.Face)}
+	fallbackErr := err
+	return &Renderer{width: width, height: height, outputWidth: width, outputHeight: height, outputScale: 1, dc: base.NewContext(width, height), primaryFont: primary, fallbackFont: fallback, fonts: make(map[fontSourceKey]*opentype.Font), faces: make(map[fontFaceKey]font.Face), initErr: errors.Join(primaryErr, fallbackErr)}
 }
 func (r *Renderer) Size() (int, int) { return r.width, r.height }
+
+// Err reports initialization failures such as invalid embedded font data.
+func (r *Renderer) Err() error { return r.initErr }
 
 // OutputSize reports raster dimensions independently of logical scene dimensions.
 func (r *Renderer) OutputSize() (int, int) { return r.outputWidth, r.outputHeight }
@@ -245,6 +246,9 @@ func (r *Renderer) fontFace(path string, version int64, size int) font.Face {
 }
 
 func newOpenTypeFace(parsed *opentype.Font, size int) font.Face {
+	if parsed == nil {
+		return nil
+	}
 	face, err := opentype.NewFace(parsed, &opentype.FaceOptions{Size: float64(size), DPI: 72, Hinting: font.HintingFull})
 	if err != nil {
 		return nil

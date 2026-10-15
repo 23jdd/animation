@@ -7,12 +7,12 @@ import (
 	"github.com/23dd/animation/geometry"
 )
 
-type Updater func(Mobject, float64, float64)
+type Updater func(Mobject, float64, float64) error
 
 type Mobject interface {
 	ID() uint64
 	Base() *BaseMobject
-	Update(time, dt float64)
+	Update(time, dt float64) error
 }
 
 var nextID atomic.Uint64
@@ -38,10 +38,13 @@ func (b *BaseMobject) Position() geometry.Vec2     { return b.Transform.Position
 func (b *BaseMobject) SetPosition(v geometry.Vec2) { b.Transform.Position = v }
 func (b *BaseMobject) AddUpdater(u Updater)        { b.updaters = append(b.updaters, u) }
 func (b *BaseMobject) ClearUpdaters()              { b.updaters = nil }
-func (b *BaseMobject) RunUpdaters(self Mobject, time, dt float64) {
+func (b *BaseMobject) RunUpdaters(self Mobject, time, dt float64) error {
 	for _, u := range b.updaters {
-		u(self, time, dt)
+		if err := u(self, time, dt); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func Update(m Mobject, time, dt float64) { m.Base().RunUpdaters(m, time, dt) }
+func Update(m Mobject, time, dt float64) error { return m.Base().RunUpdaters(m, time, dt) }

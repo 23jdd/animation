@@ -32,8 +32,11 @@ func (s *Scene) Snapshot() []mobject.Mobject {
 	defer s.mu.RUnlock()
 	return append([]mobject.Mobject(nil), s.Objects...)
 }
-func (s *Scene) Update(time, dt float64) {
+func (s *Scene) Update(time, dt float64) error {
 	for _, o := range s.Snapshot() {
-		o.Update(time, dt)
+		if err := o.Update(time, dt); err != nil {
+			return err
+		}
 	}
+	return nil
 }

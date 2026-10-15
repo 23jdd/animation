@@ -12,5 +12,9 @@ func Run(e *engine.Engine, title string) error {
 	ebiten.SetWindowSizeLimits(720, playerHeight+240, -1, -1)
 	ebiten.SetWindowTitle(title)
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	return ebiten.RunGame(New(e))
+	game, err := New(e)
+	if err != nil {
+		return err
+	}
+	return ebiten.RunGame(game)
 }

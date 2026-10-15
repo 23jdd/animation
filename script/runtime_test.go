@@ -3,6 +3,7 @@ package script_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"golang.org/x/image/font/gofont/goregular"
@@ -217,6 +218,48 @@ func TestWriteSetsOpacity(t *testing.T) {
 	}
 }
 
+func TestInvalidArgumentsReturnScriptErrors(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   string
+	}{
+		{"write target", `write(circle())`, "write expects a text object"},
+		{"write opacity type", `write(text("Hi"), null, "bright")`, "write opacity must be a number"},
+		{"write opacity range", `write(text("Hi"), null, 2)`, "write opacity must be between 0 and 1"},
+		{"missing mobject", `fadeIn()`, "expected mobject"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "invalid.js")
+			if err := os.WriteFile(path, []byte(test.source), 0600); err != nil {
+				t.Fatal(err)
+			}
+			_, err := script.LoadFile(path, 320, 180)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestUpdaterErrorIsReturned(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "updater-error.js")
+	source := `const c = circle(); c.update(() => { throw new Error("updater failed") }); add(c);`
+	if err := os.WriteFile(path, []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := script.LoadFile(path, 320, 180)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = r.Scene.Update(0.1, 0.1); err == nil || !strings.Contains(err.Error(), "updater failed") {
+		t.Fatalf("update error = %v", err)
+	}
+}
+
 func TestDrawLineEffects(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "draw.js")
@@ -255,4 +298,3 @@ play(drawLineFromCenter(center), {duration: 1});
 		t.Fatalf("center line endpoints: %v, %v", center.Start.X, center.End.X)
 	}
 }
-

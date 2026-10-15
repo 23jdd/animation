@@ -40,17 +40,22 @@ type Game struct {
 	expectedSlider int
 }
 
-func New(e *engine.Engine) *Game {
+func New(e *engine.Engine) (*Game, error) {
 	w, h := e.Renderer.Size()
 	g := &Game{Engine: e, frame: ebiten.NewImage(w, h), width: w, height: h, uiScale: ebiten.Monitor().DeviceScaleFactor()}
-	g.buildUI()
-	return g
+	if err := g.buildUI(); err != nil {
+		return nil, err
+	}
+	return g, nil
 }
 
 func (g *Game) Update() error {
 	g.ui.Update()
 	g.handleKeyboard()
-	g.Engine.Update()
+	if err := g.Engine.Update(); err != nil {
+		g.syncPlayerState()
+		return nil
+	}
 	g.syncPlayerState()
 	return nil
 }
@@ -115,8 +120,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	scale := ebiten.Monitor().DeviceScaleFactor()
 	if scale != g.uiScale {
 		g.uiScale = scale
-		g.buildUI()
-		g.syncPlayerState()
+		if err := g.buildUI(); err == nil {
+			g.syncPlayerState()
+		}
 	}
 	return int(float64(outsideWidth) * scale),
 		int(float64(outsideHeight) * scale)
@@ -210,9 +216,12 @@ func (g *Game) syncPlayerState() {
 	g.timelineSlider.Current = progress
 }
 
-func (g *Game) buildUI() {
+func (g *Game) buildUI() error {
 	px := g.pixels
-	face := loadFace(16 * g.uiScale)
+	face, err := loadFace(16 * g.uiScale)
+	if err != nil {
+		return err
+	}
 	textColor := &widget.LabelColor{Idle: color.NRGBA{R: 226, G: 232, B: 240, A: 255}}
 	root := widget.NewContainer(widget.ContainerOpts.Layout(widget.NewAnchorLayout()))
 	panel := widget.NewContainer(
@@ -253,6 +262,7 @@ func (g *Game) buildUI() {
 	panel.AddChild(g.timelineSlider, controls, g.statusLabel)
 	root.AddChild(panel)
 	g.ui = &ebitenui.UI{Container: root}
+	return nil
 }
 
 func (g *Game) button(label string, face text.Face, clicked func()) *widget.Button {
@@ -282,23 +292,23 @@ func sliderHandle() *widget.ButtonImage {
 	return &widget.ButtonImage{Idle: uiimage.NewNineSliceColor(color.NRGBA{R: 59, G: 130, B: 246, A: 255}), Hover: uiimage.NewNineSliceColor(color.NRGBA{R: 96, G: 165, B: 250, A: 255}), Pressed: uiimage.NewNineSliceColor(color.NRGBA{R: 37, G: 99, B: 235, A: 255})}
 }
 
-func loadFace(size float64) text.Face {
+func loadFace(size float64) (text.Face, error) {
 	primarySource, err := text.NewGoTextFaceSource(bytes.NewReader(fontasset.JetBrainsMonoRegular()))
 	if err != nil {
-		panic(fmt.Errorf("load player primary font: %w", err))
+		return nil, fmt.Errorf("load player primary font: %w", err)
 	}
 	fallbackSource, err := text.NewGoTextFaceSource(bytes.NewReader(fontasset.SourceHanSansSCRegular()))
 	if err != nil {
-		panic(fmt.Errorf("load player fallback font: %w", err))
+		return nil, fmt.Errorf("load player fallback font: %w", err)
 	}
 	face, err := text.NewMultiFace(
 		&text.GoTextFace{Source: primarySource, Size: size},
 		&text.GoTextFace{Source: fallbackSource, Size: size},
 	)
 	if err != nil {
-		panic(fmt.Errorf("create player font fallback: %w", err))
+		return nil, fmt.Errorf("create player font fallback: %w", err)
 	}
-	return face
+	return face, nil
 }
 
 func formatTime(seconds float64) string {

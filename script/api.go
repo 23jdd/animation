@@ -1,6 +1,7 @@
 package script
 
 import (
+	"errors"
 	"fmt"
 	"image/color"
 	"math"
@@ -16,10 +17,37 @@ import (
 	"golang.org/x/image/font/opentype"
 )
 
-func (r *Runtime) register() {
+func (r *Runtime) register() error {
+	var registerErr error
 	set := func(name string, fn func(goja.FunctionCall) goja.Value) {
-		if err := r.VM.Set(name, fn); err != nil {
-			panic(err)
+		rawName := "__animation_native_" + name
+		wrapped := func(c goja.FunctionCall) goja.Value {
+			r.callErr = nil
+			result := fn(c)
+			outcome := r.VM.NewObject()
+			_ = outcome.Set("value", result)
+			if err := r.takeCallError(); err != nil {
+				_ = outcome.Set("error", err.Error())
+			}
+			return outcome
+		}
+		if err := r.VM.Set(rawName, wrapped); err != nil && registerErr == nil {
+			registerErr = fmt.Errorf("register JavaScript function %q: %w", name, err)
+			return
+		}
+		wrapper := fmt.Sprintf(`(function(native) {
+			return function(...args) {
+				const outcome = native(...args);
+				if (outcome.error !== undefined) throw new TypeError(outcome.error);
+				return outcome.value;
+			};
+		})(globalThis[%s])`, strconv.Quote(rawName))
+		value, err := r.VM.RunString(wrapper)
+		if err == nil {
+			err = r.VM.Set(name, value)
+		}
+		if err != nil && registerErr == nil {
+			registerErr = fmt.Errorf("register JavaScript function %q: %w", name, err)
 		}
 	}
 	set("circle", r.jsCircle)
@@ -83,7 +111,8 @@ func (r *Runtime) register() {
 	set("drawLine", func(c goja.FunctionCall) goja.Value {
 		target, ok := r.mustObject(c.Argument(0)).(*mobject.Line)
 		if !ok {
-			panic(r.VM.NewTypeError("drawLine expects a line object"))
+			r.fail("drawLine expects a line object")
+			return goja.Undefined()
 		}
 		var tip mobject.Mobject
 		if v := c.Argument(1); isDefined(v) {
@@ -94,29 +123,37 @@ func (r *Runtime) register() {
 	set("drawLineFromCenter", func(c goja.FunctionCall) goja.Value {
 		target, ok := r.mustObject(c.Argument(0)).(*mobject.Line)
 		if !ok {
-			panic(r.VM.NewTypeError("drawLineFromCenter expects a line object"))
+			r.fail("drawLineFromCenter expects a line object")
+			return goja.Undefined()
 		}
 		return r.anim(animation.DrawLineFromCenter(target))
 	})
 	set("write", func(c goja.FunctionCall) goja.Value {
 		target, ok := r.mustObject(c.Argument(0)).(*mobject.Text)
 		if !ok {
-			panic(r.VM.NewTypeError("write expects a text object"))
+			r.fail("write expects a text object")
+			return goja.Undefined()
 		}
-		opa := c.Argument(2).ToFloat()
+		opa := r.finiteNumber(c.Argument(2), 1, "write opacity")
+		if opa < 0 || opa > 1 {
+			r.fail("write opacity must be between 0 and 1")
+			return goja.Undefined()
+		}
 		return r.anim(animation.Write(target, cursorColor(c.Argument(1), target.Fill), opa))
 	})
 	set("unwrite", func(c goja.FunctionCall) goja.Value {
 		target, ok := r.mustObject(c.Argument(0)).(*mobject.Text)
 		if !ok {
-			panic(r.VM.NewTypeError("unwrite expects a text object"))
+			r.fail("unwrite expects a text object")
+			return goja.Undefined()
 		}
 		return r.anim(animation.Unwrite(target, cursorColor(c.Argument(1), target.Fill)))
 	})
 	set("moveAlongPath", func(c goja.FunctionCall) goja.Value {
 		p, ok := r.mustObject(c.Argument(1)).(*mobject.Path)
 		if !ok {
-			panic(r.VM.NewTypeError("second argument must be a path"))
+			r.fail("moveAlongPath second argument must be a path")
+			return goja.Undefined()
 		}
 		return r.anim(animation.MoveAlongPath(r.mustObject(c.Argument(0)), p.Geometry))
 	})
@@ -198,10 +235,12 @@ func (r *Runtime) register() {
 		native := c.Argument(0).ToObject(r.VM).Get("__native")
 		v, ok := native.Export().(*animation.ValueTracker)
 		if !ok {
-			panic(r.VM.NewTypeError("expected ValueTracker"))
+			r.fail("animateValue expects a ValueTracker")
+			return goja.Undefined()
 		}
 		return r.anim(animation.AnimateValue(v, c.Argument(1).ToFloat()))
 	})
+	return registerErr
 }
 
 func (r *Runtime) wrapValue(v *animation.ValueTracker) goja.Value {
@@ -215,9 +254,14 @@ func (r *Runtime) wrapValue(v *animation.ValueTracker) goja.Value {
 
 func (r *Runtime) anim(a animation.Animation) goja.Value { return r.VM.ToValue(a) }
 func (r *Runtime) mustAnimation(v goja.Value) animation.Animation {
+	if !isDefined(v) {
+		r.fail("expected animation")
+		return animation.New(0, animation.Linear, nil, nil, nil, nil)
+	}
 	a, ok := v.Export().(animation.Animation)
 	if !ok {
-		panic(r.VM.NewTypeError("expected animation"))
+		r.fail("expected animation")
+		return animation.New(0, animation.Linear, nil, nil, nil, nil)
 	}
 	return a
 }
@@ -229,15 +273,54 @@ func (r *Runtime) animations(values []goja.Value) []animation.Animation {
 	return out
 }
 func (r *Runtime) mustObject(v goja.Value) mobject.Mobject {
+	if !isDefined(v) {
+		r.fail("expected mobject")
+		return mobject.NewGroup()
+	}
 	o := v.ToObject(r.VM).Get("__native")
 	if o == nil || goja.IsUndefined(o) {
-		panic(r.VM.NewTypeError("expected mobject"))
+		r.fail("expected mobject")
+		return mobject.NewGroup()
 	}
 	m, ok := o.Export().(mobject.Mobject)
 	if !ok {
-		panic(r.VM.NewTypeError("invalid mobject"))
+		r.fail("invalid mobject")
+		return mobject.NewGroup()
 	}
 	return m
+}
+
+func (r *Runtime) fail(message string) {
+	if r.callErr == nil {
+		r.callErr = errors.New(message)
+	}
+}
+
+func (r *Runtime) takeCallError() error {
+	err := r.callErr
+	r.callErr = nil
+	return err
+}
+
+func (r *Runtime) finiteNumber(v goja.Value, fallback float64, name string) float64 {
+	if !isDefined(v) {
+		return fallback
+	}
+	var n float64
+	switch value := v.Export().(type) {
+	case float64:
+		n = value
+	case int64:
+		n = float64(value)
+	default:
+		r.fail(name + " must be a number")
+		return fallback
+	}
+	if math.IsNaN(n) || math.IsInf(n, 0) {
+		r.fail(name + " must be finite")
+		return fallback
+	}
+	return n
 }
 func (r *Runtime) jsPlay(c goja.FunctionCall) goja.Value {
 	args := c.Arguments
@@ -290,18 +373,44 @@ func (r *Runtime) wrap(m mobject.Mobject) goja.Value {
 	define("y", func() float64 { return m.Base().Transform.Position.Y }, func(v float64) { m.Base().Transform.Position.Y = v })
 	define("rotation", func() float64 { return m.Base().Transform.Rotation }, func(v float64) { m.Base().Transform.Rotation = v })
 	define("opacity", func() float64 { return m.Base().Opacity }, func(v float64) { m.Base().Opacity = v })
-	_ = o.Set("update", func(c goja.FunctionCall) goja.Value {
+	nativeUpdate := r.VM.ToValue(func(c goja.FunctionCall) goja.Value {
+		outcome := r.VM.NewObject()
 		fn, ok := goja.AssertFunction(c.Argument(0))
 		if !ok {
-			panic(r.VM.NewTypeError("update expects a function"))
+			_ = outcome.Set("error", "update expects a function")
+			return outcome
 		}
-		m.Base().AddUpdater(func(_ mobject.Mobject, t, dt float64) {
-			if _, err := fn(goja.Undefined(), o, r.VM.ToValue(t), r.VM.ToValue(dt)); err != nil {
-				panic(err)
-			}
+		m.Base().AddUpdater(func(_ mobject.Mobject, t, dt float64) error {
+			_, err := fn(goja.Undefined(), o, r.VM.ToValue(t), r.VM.ToValue(dt))
+			return err
 		})
-		return o
+		_ = outcome.Set("value", o)
+		return outcome
 	})
+	factory, err := r.VM.RunString(`(function(native) {
+		return function(callback) {
+			const outcome = native(callback);
+			if (outcome.error !== undefined) throw new TypeError(outcome.error);
+			return outcome.value;
+		};
+	})`)
+	if err != nil {
+		r.fail("create update method: " + err.Error())
+		return o
+	}
+	makeMethod, ok := goja.AssertFunction(factory)
+	if !ok {
+		r.fail("create update method: wrapper is not callable")
+		return o
+	}
+	update, err := makeMethod(goja.Undefined(), nativeUpdate)
+	if err != nil {
+		r.fail("create update method: " + err.Error())
+		return o
+	}
+	if err = o.Set("update", update); err != nil {
+		r.fail("set update method: " + err.Error())
+	}
 	return o
 }
 func (r *Runtime) jsCircle(c goja.FunctionCall) goja.Value {
@@ -369,21 +478,26 @@ func (r *Runtime) jsText(c goja.FunctionCall) goja.Value {
 		fontPath = filepath.Clean(fontPath)
 		ext := strings.ToLower(filepath.Ext(fontPath))
 		if ext != ".ttf" && ext != ".otf" {
-			panic(r.VM.NewTypeError("font must be a .ttf or .otf file"))
+			r.fail("font must be a .ttf or .otf file")
+			return r.wrap(m)
 		}
 		info, err := os.Stat(fontPath)
 		if err != nil {
-			panic(r.VM.NewGoError(fmt.Errorf("load font %q: %w", fontValue.String(), err)))
+			r.fail(fmt.Sprintf("load font %q: %v", fontValue.String(), err))
+			return r.wrap(m)
 		}
 		if !info.Mode().IsRegular() {
-			panic(r.VM.NewTypeError("font path must point to a file"))
+			r.fail("font path must point to a file")
+			return r.wrap(m)
 		}
 		fontData, err := os.ReadFile(fontPath)
 		if err != nil {
-			panic(r.VM.NewGoError(fmt.Errorf("read font %q: %w", fontValue.String(), err)))
+			r.fail(fmt.Sprintf("read font %q: %v", fontValue.String(), err))
+			return r.wrap(m)
 		}
 		if _, err = opentype.Parse(fontData); err != nil {
-			panic(r.VM.NewGoError(fmt.Errorf("parse font %q: %w", fontValue.String(), err)))
+			r.fail(fmt.Sprintf("parse font %q: %v", fontValue.String(), err))
+			return r.wrap(m)
 		}
 		m.Font = fontPath
 		m.FontVersion = info.ModTime().UnixNano() ^ info.Size()

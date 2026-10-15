@@ -23,7 +23,7 @@ type Engine struct {
 func New(s *scene.Scene, t *timeline.Timeline, r renderer.Renderer) *Engine {
 	return &Engine{Scene: s, Timeline: t, Renderer: r, Clock: NewRealtimeClock(), Playing: true, Speed: 1}
 }
-func (e *Engine) Update() {
+func (e *Engine) Update() error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	now := e.Clock.Time()
@@ -38,8 +38,14 @@ func (e *Engine) Update() {
 		}
 	}
 	e.Timeline.Seek(now)
-	e.Scene.Update(now, now-e.last)
+	if err := e.Scene.Update(now, now-e.last); err != nil {
+		e.ScriptError = err
+		e.Playing = false
+		e.Clock.Pause()
+		return err
+	}
 	e.last = now
+	return nil
 }
 func (e *Engine) Render() image.Image {
 	e.mu.RLock()

@@ -44,7 +44,9 @@ func GIFWithProgress(path string, s *scene.Scene, t *timeline.Timeline, r render
 	lookupOnce.Do(buildLookup)
 	for i := 0; i < frames; i++ {
 		t.Seek(float64(i) / fps)
-		s.Update(t.Time, 1/fps)
+		if err := s.Update(t.Time, 1/fps); err != nil {
+			return fmt.Errorf("update scene: %w", err)
+		}
 		src := r.Render(s)
 		if dst == nil {
 			dst = image.NewPaletted(src.Bounds(), palette.Plan9)

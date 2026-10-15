@@ -15,13 +15,16 @@ type Runtime struct {
 	Timeline *timeline.Timeline
 	BaseDir  string
 	cursor   float64
+	callErr  error
 }
 
-func New(width, height int) *Runtime {
+func New(width, height int) (*Runtime, error) {
 	baseDir, _ := os.Getwd()
 	r := &Runtime{VM: goja.New(), Scene: scene.New(width, height), Timeline: timeline.New(), BaseDir: baseDir}
-	r.register()
-	return r
+	if err := r.register(); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 func LoadFile(path string, width, height int) (*Runtime, error) {
 	abs, err := filepath.Abs(path)
@@ -32,7 +35,10 @@ func LoadFile(path string, width, height int) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := New(width, height)
+	r, err := New(width, height)
+	if err != nil {
+		return nil, err
+	}
 	r.BaseDir = filepath.Dir(abs)
 	if _, err = r.VM.RunScript(abs, code); err != nil {
 		return nil, fmt.Errorf("script %s: %w", abs, err)
