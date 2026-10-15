@@ -147,7 +147,6 @@ func (r *Renderer) draw(o mobject.Mobject, parentAlpha float64) {
 		r.path(v.Geometry, b.DrawProgress)
 		r.paint(b, alpha)
 	case *mobject.Text:
-		r.setColor(withAlpha(b.Fill, alpha))
 		size := int(math.Round(v.Size * r.outputScale))
 		if size < 1 {
 			size = 1
@@ -157,19 +156,36 @@ func (r *Renderer) draw(o mobject.Mobject, parentAlpha float64) {
 			r.dc.SetFontFace(face)
 		}
 		runes := []rune(v.Content)
-		visible := int(math.Ceil(float64(len(runes)) * math.Max(0, math.Min(1, v.Reveal))))
-		if visible > len(runes) {
-			visible = len(runes)
-		}
-		if visible == 0 {
+		total := len(runes)
+		reveal := math.Max(0, math.Min(1, v.Reveal))
+		if total == 0 || reveal <= 0 {
 			break
 		}
-		content := string(runes[:visible])
+		full := int(math.Floor(reveal * float64(total)))
+		frac := reveal*float64(total) - float64(full)
+		if full >= total {
+			full = total
+			frac = 0
+		}
 		fullWidth, _ := r.dc.MeasureString(v.Content)
-		visibleWidth, _ := r.dc.MeasureString(content)
 		r.dc.Push()
 		r.dc.Scale(1/r.outputScale, 1/r.outputScale)
-		r.dc.DrawStringAnchored(content, (visibleWidth-fullWidth)/2, 0, .5, .5)
+		// Fully revealed characters are drawn at full opacity.
+		if full > 0 {
+			prefix := string(runes[:full])
+			prefixWidth, _ := r.dc.MeasureString(prefix)
+			r.setColor(withAlpha(b.Fill, alpha))
+			r.dc.DrawStringAnchored(prefix, (prefixWidth-fullWidth)/2, 0, .5, .5)
+		}
+		// The current character fades in as the reveal value advances past it.
+		if full < total && frac > 0 {
+			current := string(runes[full])
+			currentWidth, _ := r.dc.MeasureString(current)
+			prefixWidth, _ := r.dc.MeasureString(string(runes[:full]))
+			cx := prefixWidth + currentWidth/2 - fullWidth/2
+			r.setColor(withAlpha(b.Fill, alpha*frac))
+			r.dc.DrawStringAnchored(current, cx, 0, .5, .5)
+		}
 		r.dc.Pop()
 	}
 	r.dc.Pop()

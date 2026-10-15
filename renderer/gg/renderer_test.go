@@ -1,6 +1,7 @@
 package gg
 
 import (
+	"image"
 	"image/color"
 	"os"
 	"path/filepath"
@@ -137,6 +138,40 @@ func TestRectangleDrawsProgressively(t *testing.T) {
 	img = r.Render(s)
 	if got := color.RGBAModel.Convert(img.At(50, 50)).(color.RGBA); got == bg {
 		t.Fatal("center filled at progress 1")
+	}
+}
+
+func TestTextRevealFadesInCharacter(t *testing.T) {
+	label := mobject.NewText("M", 64)
+	label.Fill = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	s := scene.New(100, 100)
+	s.Add(label)
+	r := New(100, 100)
+
+	brightest := func(img image.Image) uint8 {
+		var max uint8
+		for y := 0; y < img.Bounds().Dy(); y++ {
+			for x := 0; x < img.Bounds().Dx(); x++ {
+				if c := color.RGBAModel.Convert(img.At(x, y)).(color.RGBA); c.R > max {
+					max = c.R
+				}
+			}
+		}
+		return max
+	}
+
+	// Render returns the renderer's internal buffer, so measure each frame
+	// before the next render overwrites it.
+	label.Reveal = 0.5
+	halfMax := brightest(r.Render(s))
+	label.Reveal = 1
+	fullMax := brightest(r.Render(s))
+
+	if fullMax < 200 {
+		t.Fatalf("full reveal should be bright, max=%d", fullMax)
+	}
+	if halfMax >= fullMax {
+		t.Fatalf("half reveal should be dimmer than full: half=%d full=%d", halfMax, fullMax)
 	}
 }
 
