@@ -146,6 +146,8 @@ play(moveTo(dot, [300, 0]), {
 | `uncreate` | 播放对象消除动画 |
 | `write` | 逐字显示文本 |
 | `unwrite` | 逐字擦除文本 |
+| `drawLine` | 从起点画线到终点，可选笔尖跟随 |
+| `drawLineFromCenter` | 线段从中点向两端展开 |
 | `transform` | 从一个对象变换为另一个对象 |
 | `replacementTransform` | 使用变换动画替换对象 |
 | `moveAlongPath` | 沿指定路径移动 |

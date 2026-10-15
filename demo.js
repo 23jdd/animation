@@ -12,13 +12,28 @@ const blue = "#4cc9f0", orange = "#ff9e5e", green = "#5eead4",
 const background = rect({ width: 1280, height: 720, fill: bg, stroke: "#00000000" });
 const title = text("EFFECTS DEMO", { position: [0, -295], size: 42, fill: ink });
 const rule = line({ start: [-570, -252], end: [570, -252], stroke: dim, strokeWidth: 1 });
-const subtitle = text("grow · spin · emphasis · wave · zoom", { position: [0, -218], size: 20, fill: dim });
+const subtitle = text("draw · grow · spin · emphasis · wave · zoom", { position: [0, -218], size: 20, fill: dim });
 add(background, title, rule, subtitle);
 
 
 play(growFromCenter(title), { duration: 0.7, ease: "smooth" });
 play(write(subtitle), { duration: 0.8 });
 play(create(rule), { duration: 0.6 });
+
+// ── 1. 画线 / 书写 ───────────────────────
+const traceLine = line({ start: [-450, -90], end: [450, -90], stroke: blue, strokeWidth: 4 });
+const nib = circle({ radius: 10, position: [-450, -90], fill: orange, stroke: "#00000000" });
+const fromCenter = line({ start: [-450, -30], end: [450, -30], stroke: green, strokeWidth: 4 });
+const traceRect = rect({ width: 220, height: 100, position: [0, 70], fill: pink, stroke: "#00000000" });
+add(traceLine, nib, fromCenter, traceRect);
+
+play(drawLine(traceLine, nib), { duration: 1.4, ease: "smooth" });
+play(drawLineFromCenter(fromCenter), { duration: 1.2, ease: "smooth" });
+play(create(traceRect), { duration: 1.2, ease: "smooth" });
+wait(0.4);
+
+// 清理画线幕（同时演示擦除）
+play(parallel(uncreate(traceLine), uncreate(fromCenter), uncreate(traceRect)), { duration: 0.5 });
 
 
 const ball = circle({ radius: 46, position: [-450, -60], fill: blue, stroke: "#dbeafe" });

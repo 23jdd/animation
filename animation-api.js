@@ -363,6 +363,23 @@ function write(target) { return animationStub(); }
 function unwrite(target) { return animationStub(); }
 
 /**
+ * Draws a line progressively from its start to its end.
+ *
+ * @param {Line} target Line object to draw.
+ * @param {Mobject} [tip] Optional object that follows the drawing head and is hidden on completion.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function drawLine(target, tip) { return animationStub(); }
+
+/**
+ * Reveals a line by growing it outward from its midpoint.
+ *
+ * @param {Line} target Line object to draw.
+ * @returns {AnimationHandle} Animation handle.
+ */
+function drawLineFromCenter(target) { return animationStub(); }
+
+/**
  * Moves an object along a path.
  *
  * @param {Mobject} target Target object.

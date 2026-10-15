@@ -164,3 +164,42 @@ play(focusOn(c, 1.4));
 	r.Timeline.Seek(r.Timeline.Duration())
 }
 
+func TestDrawLineEffects(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "draw.js")
+	source := `
+const axis = line({start: [-100, 0], end: [100, 0]});
+const nib = circle({radius: 6});
+const center = line({start: [-100, 0], end: [100, 0]});
+add(axis, nib, center);
+play(drawLine(axis, nib), {duration: 1});
+play(drawLineFromCenter(center), {duration: 1});
+`
+	if err := os.WriteFile(path, []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := script.LoadFile(path, 640, 360)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Timeline.Duration(); got != 2 {
+		t.Fatalf("duration: %v", got)
+	}
+	// At t=0.5 the axis is half drawn and the nib follows the midpoint.
+	r.Timeline.Seek(0.5)
+	axis := r.Scene.Snapshot()[0].(*mobject.Line)
+	if axis.Base().DrawProgress != 0.5 {
+		t.Fatalf("draw progress: %v", axis.Base().DrawProgress)
+	}
+	nib := r.Scene.Snapshot()[1]
+	if nib.Base().Transform.Position.X != 0 {
+		t.Fatalf("nib x: %v", nib.Base().Transform.Position.X)
+	}
+	// drawLineFromCenter at t=1.5 grows outward from the midpoint.
+	r.Timeline.Seek(1.5)
+	center := r.Scene.Snapshot()[2].(*mobject.Line)
+	if center.Start.X != -50 || center.End.X != 50 {
+		t.Fatalf("center line endpoints: %v, %v", center.Start.X, center.End.X)
+	}
+}
+

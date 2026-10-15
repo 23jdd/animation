@@ -56,7 +56,7 @@ play(create(dot), { duration: 0.5 });
 play(moveTo(dot, [300, 0]), { duration: 2, ease: "smooth" });
 ```
 
-Animations include `moveTo`, `moveBy`, `scaleTo`, `scaleBy`, `rotateTo`, `rotateBy`, `fadeIn`, `fadeOut`, `opacityTo`, `colorTo`, `create`, `uncreate`, `write`, `unwrite`, `transform`, `replacementTransform`, `moveAlongPath`, `growFromCenter`, `shrinkToCenter`, `growFromPoint`, `growFromEdge`, `spinIn`, `spinOut`, `flash`, `indicate`, `blink`, `wiggle`, `wave`, `zoomIn`, `zoomOut`, and `focusOn`. Compose them with `sequence`, `parallel`, `stagger`, `repeat`, `loop`, and `yoyo`.
+Animations include `moveTo`, `moveBy`, `scaleTo`, `scaleBy`, `rotateTo`, `rotateBy`, `fadeIn`, `fadeOut`, `opacityTo`, `colorTo`, `create`, `uncreate`, `write`, `unwrite`, `drawLine`, `drawLineFromCenter`, `transform`, `replacementTransform`, `moveAlongPath`, `growFromCenter`, `shrinkToCenter`, `growFromPoint`, `growFromEdge`, `spinIn`, `spinOut`, `flash`, `indicate`, `blink`, `wiggle`, `wave`, `zoomIn`, `zoomOut`, and `focusOn`. Compose them with `sequence`, `parallel`, `stagger`, `repeat`, `loop`, and `yoyo`.
 
 Custom TrueType/OpenType fonts are supported by `text()` and are resolved relative to the scene script:
 

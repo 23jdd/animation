@@ -103,6 +103,43 @@ func TestDefaultFontSelectsJetBrainsMonoThenChineseFallback(t *testing.T) {
 	}
 }
 
+func TestRectangleDrawsProgressively(t *testing.T) {
+	s := scene.New(100, 100)
+	rect := mobject.NewRectangle(100, 100)
+	rect.Fill = color.RGBA{R: 255, A: 255}
+	rect.Stroke = color.RGBA{}
+	rect.StrokeWidth = 4
+	s.Add(rect)
+	r := New(100, 100)
+	bg := s.Camera.Background
+
+	// Half drawn: the perimeter is only traced, so the center stays empty.
+	rect.DrawProgress = 0.5
+	img := r.Render(s)
+	if got := color.RGBAModel.Convert(img.At(50, 50)).(color.RGBA); got != bg {
+		t.Fatalf("center unfilled at progress 0.5: %v", got)
+	}
+	stroked := false
+	for y := 0; y < 100 && !stroked; y++ {
+		for x := 0; x < 100; x++ {
+			if color.RGBAModel.Convert(img.At(x, y)).(color.RGBA) != bg {
+				stroked = true
+				break
+			}
+		}
+	}
+	if !stroked {
+		t.Fatal("no stroke pixels at progress 0.5")
+	}
+
+	// Fully drawn: the rectangle is filled as usual.
+	rect.DrawProgress = 1
+	img = r.Render(s)
+	if got := color.RGBAModel.Convert(img.At(50, 50)).(color.RGBA); got == bg {
+		t.Fatal("center filled at progress 1")
+	}
+}
+
 func TestOutputSizePreservesLogicalCanvasSize(t *testing.T) {
 	r := New(1280, 720)
 	r.SetOutputSize(800, 450)

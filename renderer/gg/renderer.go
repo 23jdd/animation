@@ -112,10 +112,14 @@ func (r *Renderer) draw(o mobject.Mobject, parentAlpha float64) {
 		x, y := -v.Width/2, -v.Height/2
 		if v.CornerRadius > 0 {
 			r.dc.DrawRoundedRectangle(x, y, v.Width, v.Height, v.CornerRadius)
+			r.paint(b, alpha)
+		} else if b.DrawProgress < 1 {
+			r.rectangleStrokeProgress(x, y, v.Width, v.Height, math.Max(0, b.DrawProgress))
+			r.strokeRect(b, alpha)
 		} else {
 			r.dc.DrawRectangle(x, y, v.Width, v.Height)
+			r.paint(b, alpha)
 		}
-		r.paint(b, alpha)
 	case *mobject.Line:
 		end := v.Start.Lerp(v.End, b.DrawProgress)
 		r.dc.MoveTo(v.Start.X, v.Start.Y)
@@ -235,6 +239,61 @@ func (r *Renderer) stroke(b *mobject.BaseMobject, alpha float64) {
 	r.setColor(withAlpha(b.Stroke, alpha))
 	r.dc.SetLineWidth(b.StrokeWidth * r.outputScale)
 	r.dc.Stroke()
+}
+
+// strokeRect strokes the current path, falling back to the fill color when the
+// stroke is invisible so that fill-only rectangles still reveal progressively.
+func (r *Renderer) strokeRect(b *mobject.BaseMobject, alpha float64) {
+	col, width := b.Stroke, b.StrokeWidth
+	if col.A == 0 || width <= 0 {
+		col = b.Fill
+		if width <= 0 {
+			width = 2
+		}
+	}
+	if col.A == 0 {
+		r.dc.ClearPath()
+		return
+	}
+	r.setColor(withAlpha(col, alpha))
+	r.dc.SetLineWidth(width * r.outputScale)
+	r.dc.Stroke()
+}
+
+// rectangleStrokeProgress traces the perimeter of a rectangle clockwise from
+// its top-left corner, up to the given fraction of the full perimeter.
+func (r *Renderer) rectangleStrokeProgress(x, y, w, h, progress float64) {
+	if progress <= 0 {
+		return
+	}
+	if progress >= 1 {
+		r.dc.DrawRectangle(x, y, w, h)
+		return
+	}
+	remaining := 2 * (w + h) * progress
+	corners := [4][2]float64{
+		{x, y},
+		{x + w, y},
+		{x + w, y + h},
+		{x, y + h},
+	}
+	r.dc.MoveTo(corners[0][0], corners[0][1])
+	for i := 0; i < 4 && remaining > 0; i++ {
+		a := corners[i]
+		b := corners[(i+1)%4]
+		seg := math.Hypot(b[0]-a[0], b[1]-a[1])
+		if seg == 0 {
+			continue
+		}
+		if remaining >= seg {
+			r.dc.LineTo(b[0], b[1])
+			remaining -= seg
+		} else {
+			t := remaining / seg
+			r.dc.LineTo(a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t)
+			remaining = 0
+		}
+	}
 }
 func (r *Renderer) path(p geometry.Path, progress float64) {
 	limit := int(math.Ceil(float64(len(p.Commands)) * math.Max(0, math.Min(1, progress))))

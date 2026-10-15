@@ -77,6 +77,24 @@ func (r *Runtime) register() {
 	})
 	set("create", func(c goja.FunctionCall) goja.Value { return r.anim(animation.Create(r.mustObject(c.Argument(0)))) })
 	set("uncreate", func(c goja.FunctionCall) goja.Value { return r.anim(animation.Uncreate(r.mustObject(c.Argument(0)))) })
+	set("drawLine", func(c goja.FunctionCall) goja.Value {
+		target, ok := r.mustObject(c.Argument(0)).(*mobject.Line)
+		if !ok {
+			panic(r.VM.NewTypeError("drawLine expects a line object"))
+		}
+		var tip mobject.Mobject
+		if v := c.Argument(1); isDefined(v) {
+			tip = r.mustObject(v)
+		}
+		return r.anim(animation.DrawLine(target, tip))
+	})
+	set("drawLineFromCenter", func(c goja.FunctionCall) goja.Value {
+		target, ok := r.mustObject(c.Argument(0)).(*mobject.Line)
+		if !ok {
+			panic(r.VM.NewTypeError("drawLineFromCenter expects a line object"))
+		}
+		return r.anim(animation.DrawLineFromCenter(target))
+	})
 	set("write", func(c goja.FunctionCall) goja.Value {
 		target, ok := r.mustObject(c.Argument(0)).(*mobject.Text)
 		if !ok {

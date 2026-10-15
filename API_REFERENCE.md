@@ -310,6 +310,47 @@ wait(0.5);
 play(unwrite(title), { duration: 0.8 });
 ```
 
+### `drawLine(line, tip?)`
+
+线段从起点逐步绘制到终点。可选传入一个 `tip` 对象（通常是圆点），它会跟随画笔尖端移动，绘制完成后自动隐藏：
+
+```js
+const axis = line({
+  start: [-300, 0],
+  end: [300, 0],
+  stroke: "#3b82f6",
+  strokeWidth: 3,
+});
+const nib = circle({ radius: 8, fill: "#f97316", stroke: "#00000000" });
+
+add(axis, nib);
+play(drawLine(axis, nib), { duration: 1.5, ease: "smooth" });
+```
+
+不带 `tip` 时，`drawLine(line)` 与 `create(line)` 等价，但语义更明确。
+
+### `drawLineFromCenter(line)`
+
+线段从中点同时向两端展开：
+
+```js
+const axis = line({ start: [-300, 0], end: [300, 0], stroke: "#22c55e", strokeWidth: 3 });
+add(axis);
+play(drawLineFromCenter(axis), { duration: 1.2, ease: "smooth" });
+```
+
+### 矩形逐步描边
+
+`create(rect)` 现在会让普通矩形（`radius: 0`）沿周长逐步描边，从左上角顺时针画满一周：
+
+```js
+const card = rect({ width: 240, height: 140, fill: "#f97316" });
+add(card);
+play(create(card), { duration: 1.5 });
+```
+
+圆角矩形（`radius > 0`）仍为整体显示。
+
 ### `transform(source, destination)`
 
 插值两个对象的公共状态，包括位置、缩放、旋转、透明度和填充颜色。当前版本不执行不同路径之间的几何 Morph。
