@@ -26,6 +26,7 @@ type Renderer struct {
 	fonts                     map[fontSourceKey]*opentype.Font
 	faces                     map[fontFaceKey]font.Face
 	initErr                   error
+	camera                    *scene.Camera
 }
 
 type fontSourceKey struct {
@@ -66,14 +67,30 @@ func (r *Renderer) SetOutputSize(width, height int) {
 }
 
 func (r *Renderer) Render(s *scene.Scene) image.Image {
+	r.camera = s.Camera
 	bg := s.Camera.Background
 	r.dc.SetRGBA255(int(bg.R), int(bg.G), int(bg.B), int(bg.A))
 	r.dc.Clear()
 	r.dc.Push()
 	r.dc.Translate(float64(r.outputWidth)/2-s.Camera.Position.X*s.Camera.Zoom*r.outputScale, float64(r.outputHeight)/2-s.Camera.Position.Y*s.Camera.Zoom*r.outputScale)
 	r.dc.Scale(s.Camera.Zoom*r.outputScale, s.Camera.Zoom*r.outputScale)
-	for _, o := range s.Snapshot() {
-		r.draw(o, 1)
+	objects := s.Snapshot()
+	for i := 0; i < len(objects); {
+		if _, ok := objects[i].(*mobject.Mesh3D); ok {
+			var meshes []*mobject.Mesh3D
+			for i < len(objects) {
+				mesh, meshOK := objects[i].(*mobject.Mesh3D)
+				if !meshOK {
+					break
+				}
+				meshes = append(meshes, mesh)
+				i++
+			}
+			r.drawMeshes3D(meshes, 1, true)
+			continue
+		}
+		r.draw(objects[i], 1)
+		i++
 	}
 	r.dc.Pop()
 	return r.dc.Image()
@@ -101,6 +118,10 @@ func (r *Renderer) draw(o mobject.Mobject, parentAlpha float64) {
 		return
 	}
 	switch v := o.(type) {
+	case *mobject.Image:
+		r.drawImage(v, alpha)
+	case *mobject.Mesh3D:
+		r.drawMeshes3D([]*mobject.Mesh3D{v}, alpha, false)
 	case *mobject.Circle:
 		if b.DrawProgress < 1 {
 			r.dc.DrawArc(0, 0, v.Radius, -math.Pi/2, -math.Pi/2+2*math.Pi*math.Max(0, b.DrawProgress))

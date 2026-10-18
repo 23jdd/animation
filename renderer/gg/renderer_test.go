@@ -9,9 +9,56 @@ import (
 
 	"golang.org/x/image/font/gofont/goregular"
 
+	"github.com/23dd/animation/geometry"
 	"github.com/23dd/animation/mobject"
 	"github.com/23dd/animation/scene"
 )
+
+func TestTriangleRasterizerUsesPerPixelDepth(t *testing.T) {
+	r := New(100, 100)
+	r.camera = scene.NewCamera(100, 100)
+	target := r.dc.Image().(*image.RGBA)
+	blue := rasterTriangle{
+		vertices: [3]rasterVertex{
+			{screen: geometry.V2(10, 10), depth: 10},
+			{screen: geometry.V2(90, 10), depth: 10},
+			{screen: geometry.V2(50, 90), depth: 10},
+		},
+		fill: color.RGBA{B: 255, A: 255}, alpha: 1,
+	}
+	redCrossing := rasterTriangle{
+		vertices: [3]rasterVertex{
+			{screen: geometry.V2(10, 10), depth: 5},
+			{screen: geometry.V2(90, 10), depth: 15},
+			{screen: geometry.V2(50, 90), depth: 15},
+		},
+		fill: color.RGBA{R: 255, A: 255}, alpha: 1,
+	}
+	r.rasterizeTriangles(target, []rasterTriangle{blue, redCrossing})
+	if got := target.RGBAAt(20, 20); got.R < 200 || got.B > 20 {
+		t.Fatalf("near side = %v, want red crossing triangle", got)
+	}
+	if got := target.RGBAAt(75, 20); got.B < 200 || got.R > 20 {
+		t.Fatalf("far side = %v, want blue plane", got)
+	}
+}
+
+func TestNearPlaneClipsInsteadOfDroppingTriangle(t *testing.T) {
+	polygon := []clipVertex{
+		{world: geometry.V3(-1, 0, 0), normal: geometry.V3(0, 0, 1), depth: 0.5},
+		{world: geometry.V3(1, 0, 0), normal: geometry.V3(0, 0, 1), depth: 2},
+		{world: geometry.V3(0, 1, 0), normal: geometry.V3(0, 0, 1), depth: 2},
+	}
+	clipped := clipAgainstNear(polygon, 1)
+	if len(clipped) != 4 {
+		t.Fatalf("clipped vertex count = %d, want 4", len(clipped))
+	}
+	for _, vertex := range clipped {
+		if vertex.depth < 1 {
+			t.Fatalf("clipped depth = %v, want >= 1", vertex.depth)
+		}
+	}
+}
 
 func TestUnstrokedBackgroundKeepsItsColor(t *testing.T) {
 	for _, strokeWidth := range []float64{0, 2} {

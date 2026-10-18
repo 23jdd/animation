@@ -7,6 +7,12 @@
  */
 
 /**
+ * A three-dimensional coordinate: `[x, y, z]`.
+ *
+ * @typedef {[number, number, number]} Vec3
+ */
+
+/**
  * A CSS-style hexadecimal color such as `#3b82f6` or `#3b82f6ff`.
  *
  * @typedef {string} Color
@@ -79,6 +85,63 @@
  * @typedef {MobjectOptions & {size?: number, font?: string}} TextOptions
  */
 
+/** @typedef {'contain'|'cover'|'stretch'} ImageFit */
+
+/**
+ * Options accepted by {@link image}. Fill/stroke options do not tint a bitmap.
+ * With neither dimension supplied, the image uses its original pixel size.
+ * With one dimension supplied, the other is calculated from the aspect ratio.
+ * With both supplied, `fit` controls how the bitmap fits this display box.
+ *
+ * @typedef {MobjectOptions & {width?: number, height?: number, fit?: ImageFit}} ImageOptions
+ */
+
+/**
+ * Options shared by 3D meshes.
+ *
+ * @typedef {Object} Mesh3DOptions
+ * @property {Vec3} [position] World-space position. Defaults to `[0, 0, 0]`.
+ * @property {Vec3} [rotation] Euler rotation `[x, y, z]` in radians.
+ * @property {number|Vec3} [scale] Uniform or per-axis 3D scale.
+ * @property {number} [opacity] Opacity between `0` and `1`.
+ * @property {Color} [fill] Base surface color.
+ * @property {Color} [stroke] Edge color.
+ * @property {number} [strokeWidth] Edge width in pixels.
+ * @property {boolean} [wireframe] Draw edges without filled faces.
+ * @property {boolean} [cullBackfaces] Hide faces pointing away from the camera.
+ * @property {boolean} [shading] Apply directional lighting.
+ * @property {boolean} [smoothShading] Interpolate vertex normals for smooth curved surfaces. Spheres and tori enable it by default.
+ * @property {number} [emissive] Unlit color contribution between `0` and `1`.
+ * @property {number} [specular] White highlight strength between `0` and `2`. Defaults to `0.12`.
+ * @property {number} [shininess] Highlight sharpness between `1` and `256`. Defaults to `32`.
+ * @property {number} [glow] Screen-space glow radius in pixels.
+ * @property {Color} [glowColor] Glow color.
+ * @property {Color[]} [faceColors] Optional color override for each face.
+ */
+
+/** @typedef {Mesh3DOptions & {vertices: Vec3[], faces: number[][], normals?: Vec3[]}} CustomMesh3DOptions */
+/** @typedef {Mesh3DOptions & {width?: number, height?: number, depth?: number}} Box3DOptions */
+/** @typedef {Mesh3DOptions & {radius?: number, segments?: number, rings?: number}} Sphere3DOptions */
+/** @typedef {Mesh3DOptions & {majorRadius?: number, minorRadius?: number, segments?: number, sides?: number}} Torus3DOptions */
+
+/**
+ * 3D camera and lighting options.
+ *
+ * @typedef {Object} Camera3DOptions
+ * @property {Vec3} [position] Camera position. Defaults to `[0, 0, 800]`.
+ * @property {Vec3} [target] Point the camera looks at.
+ * @property {Vec3} [up] Camera up direction.
+ * @property {number} [fov] Vertical field of view in degrees.
+ * @property {number} [near] Near clipping distance.
+ * @property {Vec3} [lightDirection] Direction from the surface toward the light.
+ * @property {number} [ambient] Ambient light contribution.
+ * @property {number} [diffuse] Directional light strength.
+ * @property {Color} [fogColor] Atmospheric fog color.
+ * @property {number} [fogNear] Distance where fog begins.
+ * @property {number} [fogFar] Distance where fog reaches full strength.
+ * @property {number} [fogStrength] Fog amount between `0` and `1`. Defaults to `0`.
+ */
+
 /**
  * Options accepted by {@link play}.
  *
@@ -94,6 +157,8 @@
  * @property {number} x Horizontal position.
  * @property {number} y Vertical position.
  * @property {number} rotation Rotation in radians.
+ * @property {number} scaleX Horizontal scale, including negative values for mirroring.
+ * @property {number} scaleY Vertical scale, including negative values for mirroring.
  * @property {number} opacity Opacity between `0` and `1`.
  * @property {function(Updater): Mobject} update Attaches a procedural updater and returns this object.
  */
@@ -128,7 +193,36 @@
 /** @typedef {Mobject} Polygon */
 /** @typedef {Mobject} PathMobject */
 /** @typedef {Mobject} TextMobject */
+/**
+ * Image dimensions and metadata are read-only; animate size using scaleTo.
+ *
+ * @typedef {Mobject & Readonly<{
+ *   width: number, height: number, naturalWidth: number, naturalHeight: number,
+ *   source: string, fit: ImageFit
+ * }>} ImageMobject
+ */
 /** @typedef {Mobject} Group */
+/**
+ * @typedef {Mobject & {
+ *   x3D: number, y3D: number, z3D: number,
+ *   rotationX: number, rotationY: number, rotationZ: number
+ * }} Mesh3DMobject
+ */
+/**
+ * @typedef {Object} Camera3DHandle
+ * @property {number} x Camera world X.
+ * @property {number} y Camera world Y.
+ * @property {number} z Camera world Z.
+ * @property {number} targetX Look-at target X.
+ * @property {number} targetY Look-at target Y.
+ * @property {number} targetZ Look-at target Z.
+ * @property {number} fov Vertical field of view in degrees.
+ * @property {number} ambient Ambient light strength.
+ * @property {number} diffuse Directional light strength.
+ * @property {number} fogNear Distance where fog begins.
+ * @property {number} fogFar Distance where fog reaches full strength.
+ * @property {number} fogStrength Fog amount between `0` and `1`.
+ */
 
 /**
  * Creates a circle.
@@ -202,6 +296,21 @@ function text(content, options = {}) {
 }
 
 /**
+ * Loads a local PNG, JPEG, static WebP or GIF (first frame) as an animatable object.
+ * Relative paths resolve from the scene script's directory, not the shell cwd.
+ * Decoded pixels are shared within the runtime. Errors throw a JS TypeError.
+ * Supports move/scale/rotate/fade, groups, and a left-to-right create reveal.
+ * SVG, network URLs, data URLs and animated-image playback are not supported.
+ *
+ * @param {string} source Local image file path.
+ * @param {ImageOptions} [options] Display box and common transform options.
+ * @returns {ImageMobject} Image mobject. Call add() to put it in the scene.
+ */
+function image(source, options = {}) {
+  return /** @type {ImageMobject} */ (/** @type {unknown} */ ({}));
+}
+
+/**
  * Creates a group of mobjects.
  *
  * @param {...Mobject} children Child objects.
@@ -209,6 +318,41 @@ function text(content, options = {}) {
  */
 function group(...children) {
   return /** @type {Group} */ (/** @type {unknown} */ ({}));
+}
+
+/**
+ * Creates a custom polygon mesh in 3D world space.
+ *
+ * @param {CustomMesh3DOptions} options Mesh geometry and material.
+ * @returns {Mesh3DMobject} 3D mesh.
+ */
+function mesh3D(options) {
+  return /** @type {Mesh3DMobject} */ (/** @type {unknown} */ ({}));
+}
+
+/** @param {Box3DOptions} [options] @returns {Mesh3DMobject} */
+function box3D(options = {}) {
+  return /** @type {Mesh3DMobject} */ (/** @type {unknown} */ ({}));
+}
+
+/** @param {Sphere3DOptions} [options] @returns {Mesh3DMobject} */
+function sphere3D(options = {}) {
+  return /** @type {Mesh3DMobject} */ (/** @type {unknown} */ ({}));
+}
+
+/** @param {Torus3DOptions} [options] @returns {Mesh3DMobject} */
+function torus3D(options = {}) {
+  return /** @type {Mesh3DMobject} */ (/** @type {unknown} */ ({}));
+}
+
+/**
+ * Configures the scene's perspective camera and directional light.
+ *
+ * @param {Camera3DOptions} [options]
+ * @returns {Camera3DHandle}
+ */
+function camera3D(options = {}) {
+  return /** @type {Camera3DHandle} */ (/** @type {unknown} */ ({}));
 }
 
 /**
@@ -297,6 +441,33 @@ function rotateTo(target, radians) { return animationStub(); }
  * @returns {AnimationHandle} Animation handle.
  */
 function rotateBy(target, radians) { return animationStub(); }
+
+/** @param {Mesh3DMobject} target @param {Vec3} destination @returns {AnimationHandle} */
+function move3DTo(target, destination) { return animationStub(); }
+
+/** @param {Mesh3DMobject} target @param {Vec3} offset @returns {AnimationHandle} */
+function move3DBy(target, offset) { return animationStub(); }
+
+/** @param {Mesh3DMobject} target @param {Vec3} rotation @returns {AnimationHandle} */
+function rotate3DTo(target, rotation) { return animationStub(); }
+
+/** @param {Mesh3DMobject} target @param {Vec3} rotation @returns {AnimationHandle} */
+function rotate3DBy(target, rotation) { return animationStub(); }
+
+/** @param {Mesh3DMobject} target @param {number|Vec3} scale @returns {AnimationHandle} */
+function scale3DTo(target, scale) { return animationStub(); }
+
+/** @param {Mesh3DMobject} target @param {number|Vec3} factor @returns {AnimationHandle} */
+function scale3DBy(target, factor) { return animationStub(); }
+
+/** @param {Camera3DHandle} camera @param {Vec3} position @returns {AnimationHandle} */
+function moveCamera3DTo(camera, position) { return animationStub(); }
+
+/** @param {Camera3DHandle} camera @param {Vec3} target @returns {AnimationHandle} */
+function lookAt3D(camera, target) { return animationStub(); }
+
+/** @param {Camera3DHandle} camera @param {number} fov @returns {AnimationHandle} */
+function cameraFOVTo(camera, fov) { return animationStub(); }
 
 /**
  * Fades an object in.

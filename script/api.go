@@ -13,6 +13,7 @@ import (
 	"github.com/23dd/animation/animation"
 	"github.com/23dd/animation/geometry"
 	"github.com/23dd/animation/mobject"
+	"github.com/23dd/animation/scene"
 	"github.com/dop251/goja"
 	"golang.org/x/image/font/opentype"
 )
@@ -57,7 +58,13 @@ func (r *Runtime) register() error {
 	set("polygon", r.jsPolygon)
 	set("path", r.jsPath)
 	set("text", r.jsText)
+	set("image", r.jsImage)
 	set("group", r.jsGroup)
+	set("mesh3D", r.jsMesh3D)
+	set("box3D", r.jsBox3D)
+	set("sphere3D", r.jsSphere3D)
+	set("torus3D", r.jsTorus3D)
+	set("camera3D", r.jsCamera3D)
 	set("add", func(c goja.FunctionCall) goja.Value {
 		for _, v := range c.Arguments {
 			r.Scene.Add(r.mustObject(v))
@@ -94,6 +101,33 @@ func (r *Runtime) register() error {
 	})
 	set("rotateBy", func(c goja.FunctionCall) goja.Value {
 		return r.anim(animation.RotateBy(r.mustObject(c.Argument(0)), c.Argument(1).ToFloat()))
+	})
+	set("move3DTo", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Move3DTo(r.mustMesh3D(c.Argument(0)), vec3(c.Argument(1))))
+	})
+	set("move3DBy", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Move3DBy(r.mustMesh3D(c.Argument(0)), vec3(c.Argument(1))))
+	})
+	set("rotate3DTo", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Rotate3DTo(r.mustMesh3D(c.Argument(0)), vec3(c.Argument(1))))
+	})
+	set("rotate3DBy", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Rotate3DBy(r.mustMesh3D(c.Argument(0)), vec3(c.Argument(1))))
+	})
+	set("scale3DTo", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Scale3DTo(r.mustMesh3D(c.Argument(0)), scaleVec3(c.Argument(1))))
+	})
+	set("scale3DBy", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.Scale3DBy(r.mustMesh3D(c.Argument(0)), scaleVec3(c.Argument(1))))
+	})
+	set("moveCamera3DTo", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.MoveCamera3DTo(r.mustCamera3D(c.Argument(0)), vec3(c.Argument(1))))
+	})
+	set("lookAt3D", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.LookAt3D(r.mustCamera3D(c.Argument(0)), vec3(c.Argument(1))))
+	})
+	set("cameraFOVTo", func(c goja.FunctionCall) goja.Value {
+		return r.anim(animation.CameraFOVTo(r.mustCamera3D(c.Argument(0)), r.finiteNumber(c.Argument(1), 50, "camera FOV")))
 	})
 	set("fadeIn", func(c goja.FunctionCall) goja.Value { return r.anim(animation.FadeIn(r.mustObject(c.Argument(0)))) })
 	set("fadeOut", func(c goja.FunctionCall) goja.Value { return r.anim(animation.FadeOut(r.mustObject(c.Argument(0)))) })
@@ -290,6 +324,33 @@ func (r *Runtime) mustObject(v goja.Value) mobject.Mobject {
 	return m
 }
 
+func (r *Runtime) mustMesh3D(v goja.Value) *mobject.Mesh3D {
+	m, ok := r.mustObject(v).(*mobject.Mesh3D)
+	if !ok {
+		r.fail("expected a 3D mesh")
+		return mobject.NewMesh3D(nil, nil)
+	}
+	return m
+}
+
+func (r *Runtime) mustCamera3D(v goja.Value) *scene.Camera3D {
+	if !isDefined(v) {
+		r.fail("expected a 3D camera")
+		return &r.Scene.Camera.ThreeD
+	}
+	o := v.ToObject(r.VM).Get("__nativeCamera3D")
+	if o == nil || goja.IsUndefined(o) {
+		r.fail("expected a 3D camera")
+		return &r.Scene.Camera.ThreeD
+	}
+	camera, ok := o.Export().(*scene.Camera3D)
+	if !ok {
+		r.fail("invalid 3D camera")
+		return &r.Scene.Camera.ThreeD
+	}
+	return camera
+}
+
 func (r *Runtime) fail(message string) {
 	if r.callErr == nil {
 		r.callErr = errors.New(message)
@@ -372,7 +433,17 @@ func (r *Runtime) wrap(m mobject.Mobject) goja.Value {
 	define("x", func() float64 { return m.Base().Transform.Position.X }, func(v float64) { m.Base().Transform.Position.X = v })
 	define("y", func() float64 { return m.Base().Transform.Position.Y }, func(v float64) { m.Base().Transform.Position.Y = v })
 	define("rotation", func() float64 { return m.Base().Transform.Rotation }, func(v float64) { m.Base().Transform.Rotation = v })
+	define("scaleX", func() float64 { return m.Base().Transform.Scale.X }, func(v float64) { m.Base().Transform.Scale.X = v })
+	define("scaleY", func() float64 { return m.Base().Transform.Scale.Y }, func(v float64) { m.Base().Transform.Scale.Y = v })
 	define("opacity", func() float64 { return m.Base().Opacity }, func(v float64) { m.Base().Opacity = v })
+	if mesh, ok := m.(*mobject.Mesh3D); ok {
+		define("x3D", func() float64 { return mesh.Transform3D.Position.X }, func(v float64) { mesh.Transform3D.Position.X = v })
+		define("y3D", func() float64 { return mesh.Transform3D.Position.Y }, func(v float64) { mesh.Transform3D.Position.Y = v })
+		define("z3D", func() float64 { return mesh.Transform3D.Position.Z }, func(v float64) { mesh.Transform3D.Position.Z = v })
+		define("rotationX", func() float64 { return mesh.Transform3D.Rotation.X }, func(v float64) { mesh.Transform3D.Rotation.X = v })
+		define("rotationY", func() float64 { return mesh.Transform3D.Rotation.Y }, func(v float64) { mesh.Transform3D.Rotation.Y = v })
+		define("rotationZ", func() float64 { return mesh.Transform3D.Rotation.Z }, func(v float64) { mesh.Transform3D.Rotation.Z = v })
+	}
 	nativeUpdate := r.VM.ToValue(func(c goja.FunctionCall) goja.Value {
 		outcome := r.VM.NewObject()
 		fn, ok := goja.AssertFunction(c.Argument(0))
@@ -515,6 +586,125 @@ func (r *Runtime) jsGroup(c goja.FunctionCall) goja.Value {
 	}()...))
 }
 
+func (r *Runtime) jsMesh3D(c goja.FunctionCall) goja.Value {
+	o := object(c.Argument(0), r.VM)
+	vertexValues := arrayValues(o.Get("vertices"), r.VM)
+	vertices := make([]geometry.Vec3, 0, len(vertexValues))
+	for _, value := range vertexValues {
+		vertices = append(vertices, vec3(value))
+	}
+	faceValues := arrayValues(o.Get("faces"), r.VM)
+	faces := make([][]int, 0, len(faceValues))
+	for _, value := range faceValues {
+		items := arrayValues(value, r.VM)
+		if len(items) < 3 {
+			r.fail("every 3D mesh face must contain at least three vertex indices")
+			continue
+		}
+		face := make([]int, len(items))
+		valid := true
+		for i, item := range items {
+			face[i] = int(item.ToInteger())
+			if face[i] < 0 || face[i] >= len(vertices) {
+				r.fail("3D mesh face index is outside the vertices array")
+				valid = false
+			}
+		}
+		if valid {
+			faces = append(faces, face)
+		}
+	}
+	if len(vertices) < 3 || len(faces) == 0 {
+		r.fail("mesh3D requires at least three vertices and one valid face")
+	}
+	m := mobject.NewMesh3D(vertices, faces)
+	if normalValue := o.Get("normals"); isDefined(normalValue) {
+		normalValues := arrayValues(normalValue, r.VM)
+		if len(normalValues) != len(vertices) {
+			r.fail("mesh3D normals must contain exactly one normal for each vertex")
+		} else {
+			m.VertexNormals = make([]geometry.Vec3, len(normalValues))
+			for i, value := range normalValues {
+				m.VertexNormals[i] = vec3(value).Normalize()
+			}
+		}
+	}
+	styleMesh3D(m, o, r.VM)
+	return r.wrap(m)
+}
+
+func (r *Runtime) jsBox3D(c goja.FunctionCall) goja.Value {
+	o := object(c.Argument(0), r.VM)
+	m := mobject.NewBox3D(propNum(o, "width", 160), propNum(o, "height", 160), propNum(o, "depth", 160))
+	styleMesh3D(m, o, r.VM)
+	return r.wrap(m)
+}
+
+func (r *Runtime) jsSphere3D(c goja.FunctionCall) goja.Value {
+	o := object(c.Argument(0), r.VM)
+	segments := int(math.Max(3, math.Min(96, propNum(o, "segments", 28))))
+	rings := int(math.Max(2, math.Min(64, propNum(o, "rings", 16))))
+	m := mobject.NewSphere3D(propNum(o, "radius", 120), segments, rings)
+	styleMesh3D(m, o, r.VM)
+	return r.wrap(m)
+}
+
+func (r *Runtime) jsTorus3D(c goja.FunctionCall) goja.Value {
+	o := object(c.Argument(0), r.VM)
+	segments := int(math.Max(3, math.Min(128, propNum(o, "segments", 48))))
+	sides := int(math.Max(3, math.Min(64, propNum(o, "sides", 12))))
+	m := mobject.NewTorus3D(propNum(o, "majorRadius", 170), propNum(o, "minorRadius", 36), segments, sides)
+	styleMesh3D(m, o, r.VM)
+	return r.wrap(m)
+}
+
+func (r *Runtime) jsCamera3D(c goja.FunctionCall) goja.Value {
+	o := object(c.Argument(0), r.VM)
+	camera := &r.Scene.Camera.ThreeD
+	camera.Position = vec3Default(o.Get("position"), camera.Position)
+	camera.Target = vec3Default(o.Get("target"), camera.Target)
+	camera.Up = vec3Default(o.Get("up"), camera.Up).Normalize()
+	camera.LightDirection = vec3Default(o.Get("lightDirection"), camera.LightDirection).Normalize()
+	camera.FOV = math.Max(1, math.Min(179, propNum(o, "fov", camera.FOV)))
+	camera.Near = math.Max(0.001, propNum(o, "near", camera.Near))
+	camera.Ambient = math.Max(0, math.Min(1, propNum(o, "ambient", camera.Ambient)))
+	camera.Diffuse = math.Max(0, math.Min(2, propNum(o, "diffuse", camera.Diffuse)))
+	if v := o.Get("fogColor"); isDefined(v) {
+		camera.FogColor = parseColor(v.String())
+	}
+	camera.FogNear = math.Max(camera.Near, propNum(o, "fogNear", camera.FogNear))
+	camera.FogFar = math.Max(camera.FogNear+0.001, propNum(o, "fogFar", camera.FogFar))
+	camera.FogStrength = math.Max(0, math.Min(1, propNum(o, "fogStrength", camera.FogStrength)))
+	return r.wrapCamera3D(camera)
+}
+
+func (r *Runtime) wrapCamera3D(camera *scene.Camera3D) goja.Value {
+	o := r.VM.NewObject()
+	_ = o.Set("__nativeCamera3D", camera)
+	getter := func(fn func() float64) goja.Value {
+		return r.VM.ToValue(func(goja.FunctionCall) goja.Value { return r.VM.ToValue(fn()) })
+	}
+	setter := func(fn func(float64)) goja.Value {
+		return r.VM.ToValue(func(c goja.FunctionCall) goja.Value { fn(c.Argument(0).ToFloat()); return goja.Undefined() })
+	}
+	define := func(name string, get func() float64, set func(float64)) {
+		_ = o.DefineAccessorProperty(name, getter(get), setter(set), goja.FLAG_TRUE, goja.FLAG_TRUE)
+	}
+	define("x", func() float64 { return camera.Position.X }, func(v float64) { camera.Position.X = v })
+	define("y", func() float64 { return camera.Position.Y }, func(v float64) { camera.Position.Y = v })
+	define("z", func() float64 { return camera.Position.Z }, func(v float64) { camera.Position.Z = v })
+	define("targetX", func() float64 { return camera.Target.X }, func(v float64) { camera.Target.X = v })
+	define("targetY", func() float64 { return camera.Target.Y }, func(v float64) { camera.Target.Y = v })
+	define("targetZ", func() float64 { return camera.Target.Z }, func(v float64) { camera.Target.Z = v })
+	define("fov", func() float64 { return camera.FOV }, func(v float64) { camera.FOV = math.Max(1, math.Min(179, v)) })
+	define("ambient", func() float64 { return camera.Ambient }, func(v float64) { camera.Ambient = math.Max(0, math.Min(1, v)) })
+	define("diffuse", func() float64 { return camera.Diffuse }, func(v float64) { camera.Diffuse = math.Max(0, math.Min(2, v)) })
+	define("fogNear", func() float64 { return camera.FogNear }, func(v float64) { camera.FogNear = math.Max(camera.Near, v) })
+	define("fogFar", func() float64 { return camera.FogFar }, func(v float64) { camera.FogFar = math.Max(camera.FogNear+0.001, v) })
+	define("fogStrength", func() float64 { return camera.FogStrength }, func(v float64) { camera.FogStrength = math.Max(0, math.Min(1, v)) })
+	return o
+}
+
 func object(v goja.Value, vm *goja.Runtime) *goja.Object {
 	if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
 		return vm.NewObject()
@@ -536,6 +726,7 @@ func stringValue(v goja.Value, d string) string {
 func isDefined(v goja.Value) bool                            { return v != nil && !goja.IsUndefined(v) && !goja.IsNull(v) }
 func propNum(o *goja.Object, name string, d float64) float64 { return number(o.Get(name), d) }
 func vec(v goja.Value) geometry.Vec2                         { return vecDefault(v, geometry.Vec2{}) }
+func vec3(v goja.Value) geometry.Vec3                        { return vec3Default(v, geometry.Vec3{}) }
 func scaleVec(v goja.Value) geometry.Vec2 {
 	if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
 		return geometry.V2(1, 1)
@@ -550,6 +741,20 @@ func scaleVec(v goja.Value) geometry.Vec2 {
 	}
 	return vecDefault(v, geometry.V2(1, 1))
 }
+func scaleVec3(v goja.Value) geometry.Vec3 {
+	if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
+		return geometry.V3(1, 1, 1)
+	}
+	if _, ok := v.Export().(float64); ok {
+		x := v.ToFloat()
+		return geometry.V3(x, x, x)
+	}
+	if _, ok := v.Export().(int64); ok {
+		x := v.ToFloat()
+		return geometry.V3(x, x, x)
+	}
+	return vec3Default(v, geometry.V3(1, 1, 1))
+}
 func vecDefault(v goja.Value, d geometry.Vec2) geometry.Vec2 {
 	if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
 		return d
@@ -559,6 +764,16 @@ func vecDefault(v goja.Value, d geometry.Vec2) geometry.Vec2 {
 		return d
 	}
 	return geometry.V2(number(o.Get("0"), d.X), number(o.Get("1"), d.Y))
+}
+func vec3Default(v goja.Value, d geometry.Vec3) geometry.Vec3 {
+	if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
+		return d
+	}
+	o := v.ToObject(nil)
+	if o == nil {
+		return d
+	}
+	return geometry.V3(number(o.Get("0"), d.X), number(o.Get("1"), d.Y), number(o.Get("2"), d.Z))
 }
 func arrayValues(v goja.Value, vm *goja.Runtime) []goja.Value {
 	if v == nil || goja.IsUndefined(v) || goja.IsNull(v) {
@@ -585,6 +800,43 @@ func style(m mobject.Mobject, o *goja.Object) {
 	if v := o.Get("stroke"); v != nil && !goja.IsUndefined(v) {
 		b.Stroke = parseColor(v.String())
 	}
+}
+
+func styleMesh3D(m *mobject.Mesh3D, o *goja.Object, vm *goja.Runtime) {
+	b := m.Base()
+	m.Transform3D.Position = vec3Default(o.Get("position"), m.Transform3D.Position)
+	m.Transform3D.Rotation = vec3Default(o.Get("rotation"), m.Transform3D.Rotation)
+	m.Transform3D.Scale = scaleVec3(o.Get("scale"))
+	b.Opacity = propNum(o, "opacity", 1)
+	b.StrokeWidth = propNum(o, "strokeWidth", 1)
+	if v := o.Get("fill"); isDefined(v) {
+		b.Fill = parseColor(v.String())
+	}
+	if v := o.Get("stroke"); isDefined(v) {
+		b.Stroke = parseColor(v.String())
+	}
+	m.Wireframe = propBool(o, "wireframe", m.Wireframe)
+	m.CullBackfaces = propBool(o, "cullBackfaces", m.CullBackfaces)
+	m.Shading = propBool(o, "shading", m.Shading)
+	m.SmoothShading = propBool(o, "smoothShading", m.SmoothShading)
+	m.Emissive = math.Max(0, math.Min(1, propNum(o, "emissive", m.Emissive)))
+	m.Specular = math.Max(0, math.Min(2, propNum(o, "specular", m.Specular)))
+	m.Shininess = math.Max(1, math.Min(256, propNum(o, "shininess", m.Shininess)))
+	m.GlowRadius = math.Max(0, propNum(o, "glow", 0))
+	if v := o.Get("glowColor"); isDefined(v) {
+		m.GlowColor = parseColor(v.String())
+	}
+	for _, value := range arrayValues(o.Get("faceColors"), vm) {
+		m.FaceColors = append(m.FaceColors, parseColor(value.String()))
+	}
+}
+
+func propBool(o *goja.Object, name string, fallback bool) bool {
+	v := o.Get(name)
+	if !isDefined(v) {
+		return fallback
+	}
+	return v.ToBoolean()
 }
 func parseColor(s string) color.RGBA {
 	s = strings.TrimSpace(strings.TrimPrefix(s, "#"))

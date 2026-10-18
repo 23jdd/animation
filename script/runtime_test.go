@@ -298,3 +298,28 @@ play(drawLineFromCenter(center), {duration: 1});
 		t.Fatalf("center line endpoints: %v, %v", center.Start.X, center.End.X)
 	}
 }
+
+func TestThreeDMaterialAndFogOptions(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "three-d.js")
+	source := `
+camera3D({fogColor:"#9ab0a8",fogNear:200,fogFar:900,fogStrength:.6,ambient:.25,diffuse:1.1});
+const orb = sphere3D({radius:40,smoothShading:true,specular:.7,shininess:96});
+add(orb);
+`
+	if err := os.WriteFile(path, []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := script.LoadFile(path, 320, 180)
+	if err != nil {
+		t.Fatal(err)
+	}
+	camera := r.Scene.Camera.ThreeD
+	if camera.FogStrength != 0.6 || camera.FogNear != 200 || camera.FogFar != 900 {
+		t.Fatalf("fog options: %+v", camera)
+	}
+	orb := r.Scene.Snapshot()[0].(*mobject.Mesh3D)
+	if !orb.SmoothShading || orb.Specular != 0.7 || orb.Shininess != 96 {
+		t.Fatalf("material options: %+v", orb)
+	}
+}

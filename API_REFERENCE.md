@@ -60,6 +60,8 @@ const point = [100, -50];
 | `x` | `number` | 水平位置，可读写 |
 | `y` | `number` | 垂直位置，可读写 |
 | `rotation` | `number` | 旋转弧度，可读写 |
+| `scaleX` | `number` | 水平缩放，可读写，负数表示水平翻转 |
+| `scaleY` | `number` | 垂直缩放，可读写，负数表示垂直翻转 |
 | `opacity` | `number` | 透明度，可读写 |
 | `update(callback)` | `function` | 添加逐帧 Updater |
 
@@ -190,6 +192,57 @@ const chineseTitle = text("实时动画引擎", {
   fill: "#f8fafc",
 });
 ```
+
+### `image(source, options?)`
+
+将本地图片加载为可以参与动画的对象，默认以图片中心定位。支持 PNG（含透明通道）、JPEG、静态 WebP 和 GIF 首帧；不播放 GIF 内部动画，暂不支持动画 WebP、SVG、网址或 data URL。
+
+```js
+const photo = image("./assets/photo.png", {
+  width: 360,
+  height: 240,
+  fit: "cover",
+  position: [-200, 0],
+  opacity: 0,
+});
+add(photo);
+play(fadeIn(photo), { duration: 0.8 });
+play(parallel(
+  moveTo(photo, [200, 0]),
+  scaleTo(photo, 1.2),
+  rotateTo(photo, Math.PI / 12),
+), { duration: 2, ease: "smooth" });
+```
+
+| 参数/属性 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `source` | `string` | 必填 | 本地文件路径，相对路径基于场景 JS 所在目录 |
+| `width` | `number` | 原始像素宽度 | 逻辑显示框宽度，必须为正的有限数 |
+| `height` | `number` | 原始像素高度 | 逻辑显示框高度，必须为正的有限数 |
+| `fit` | `"contain" \| "cover" \| "stretch"` | `"contain"` | 图片在显示框内的适配方式 |
+
+未指定宽高时使用原始像素尺寸；只指定其中一项时，另一项按原始比例计算。两项都指定时：
+
+- `contain`：保持比例、完整显示，空余部分透明，不自动填色。
+- `cover`：保持比例铺满显示框，居中裁掉超出的部分。
+- `stretch`：分别缩放宽高，可能改变比例。
+
+图片支持公共变换、透明度、层级组及 Updater。`fill`、`stroke`、`strokeWidth` 不会给图片染色或添加边框；如需边框，在图片后面放置一个 `rect()`。`create()` / `uncreate()` 沿显示框从左向右揭示 / 从右向左隐藏图片，不是矢量描边。负的 `scaleX` / `scaleY` 可以翻转图片。
+
+返回对象还有以下只读属性；调整显示尺寸时使用 `scaleTo()` / `scaleBy()`：
+
+| 属性 | 说明 |
+|---|---|
+| `width`, `height` | 逻辑显示框宽高，不包含缩放变换 |
+| `naturalWidth`, `naturalHeight` | 图片文件原始像素宽高 |
+| `source` | 解析后的本地文件路径 |
+| `fit` | 创建时的适配方式 |
+
+文件在脚本加载时解码，同一个运行时复用已解码数据，不会在每帧读盘；新运行时和热重载会重新读取。放在场景目录及子目录中的 `.png`、`.jpg`、`.jpeg`、`.webp`、`.gif` 修改后会触发热重载。目录外的图片可以加载，但修改后需手动重载场景。
+
+文件不存在、格式损坏、无效宽高或不支持的 `fit` 会抛出可捕获的 JavaScript `TypeError`，不会使用 Go `panic`。每张源图片限制为 64 MiB 编码文件、6400 万像素，解码前检查尺寸。
+
+完整演示见 `examples/image/animation.js`。
 
 ### `group(...children)`
 
@@ -640,3 +693,96 @@ go run . preview index.js
 - 场景脚本由 Goja 执行。
 - 保存场景脚本后，预览窗口会进行事务式热重载。
 - 脚本加载失败时继续显示上一次有效场景。
+## 13. 3D API
+
+3D API 使用透视相机、三角形光栅化、逐像素深度缓冲、透视正确材质插值、平滑法线、方向光高光、雾化和屏幕空间发光。
+原有 2D 对象保持兼容，并可作为 3D 场景的 UI 覆盖层。
+
+```js
+const camera = camera3D({
+  position: [0, 120, 900],
+  target: [0, 0, 0],
+  fov: 48,
+  lightDirection: [-0.4, 0.8, 1],
+  ambient: 0.18,
+  diffuse: 0.9,
+  fogColor: "#dce7e2",
+  fogNear: 700,
+  fogFar: 1500,
+  fogStrength: 0.35,
+});
+
+const planet = sphere3D({
+  radius: 150,
+  segments: 32,
+  rings: 18,
+  fill: "#2563eb",
+  smoothShading: true,
+  specular: 0.35,
+  shininess: 64,
+  stroke: "#67e8f9",
+  glow: 10,
+  glowColor: "#22d3ee",
+});
+
+add(planet);
+play(rotate3DBy(planet, [0.4, Math.PI * 2, 0.2]), { duration: 6 });
+play(moveCamera3DTo(camera, [0, 40, 620]), { duration: 2, ease: "smooth" });
+```
+
+### 创建对象
+
+- `mesh3D({ vertices, faces, normals?, ...material })`；`normals` 可为每个顶点提供一个自定义法线。
+- `box3D({ width, height, depth, ...material })`
+- `sphere3D({ radius, segments, rings, ...material })`
+- `torus3D({ majorRadius, minorRadius, segments, sides, ...material })`
+- `camera3D({ position, target, up, fov, near, lightDirection, ambient, diffuse, fogColor, fogNear, fogFar, fogStrength })`
+
+材质参数：
+
+- `smoothShading`：插值顶点法线，让曲面连续；球体和圆环默认开启。
+- `specular`：高光强度，范围 `0..2`，默认 `0.12`。
+- `shininess`：高光锐度，范围 `1..256`，默认 `32`。
+- `emissive`：不受光照影响的基础亮度，范围 `0..1`。
+- `faceColors`：按面的颜色数组。
+
+相机会在 `fogNear` 到 `fogFar` 之间渐进混合 `fogColor`；`fogStrength` 为 `0` 时关闭雾化。
+
+### 3D 动画
+
+- `move3DTo(mesh, [x, y, z])`
+- `move3DBy(mesh, [dx, dy, dz])`
+- `rotate3DTo(mesh, [rx, ry, rz])`
+- `rotate3DBy(mesh, [drx, dry, drz])`
+- `scale3DTo(mesh, scale)`
+- `scale3DBy(mesh, factor)`
+- `moveCamera3DTo(camera, [x, y, z])`
+- `lookAt3D(camera, [x, y, z])`
+- `cameraFOVTo(camera, degrees)`
+
+`Mesh3DMobject` 还向 JavaScript Updater 暴露 `x3D`、`y3D`、`z3D`、
+`rotationX`、`rotationY` 和 `rotationZ`。
+
+## 14. PPTX 导出
+
+无需更改动画 JavaScript，在项目根目录运行：
+
+```powershell
+go run . pptx -time 60 examples/rose-curve/animation.js rose.pptx
+go run . pptx -times 4,11,26,33,42,50,60 examples/rose-curve/animation.js storyboard.pptx
+go run . pptx -interval 8 -scale 2 examples/rose-curve/animation.js sampled.pptx
+```
+
+`ppt` 为 `pptx` 的别名。`-time`、`-times`、`-interval` 互斥，选项须放在 JS 路径之前。默认导出第 0 秒、图片分辨率为逻辑画布的 2 倍，页面保持原画布比例。每次最多 500 页，时间不能越界；按间隔采样时包括动画末尾。
+
+默认导出静态图片分镜，一页对应一个时间点，并在备注中记录时间。
+
+原生动画模式：
+
+```powershell
+go run . pptx -native examples/pptx-native/animation.js native-animation.pptx
+```
+
+`-native` 将整段时间轴转换为一页可自动放映的 PowerPoint 原生动画，支持可编辑文字、圆、矩形、直线、多边形和路径，以及位置、正数缩放、旋转与完整淡入淡出。`-fps` 控制关键帧采样精度，默认 60；缓动近似转换。字体按名称引用、不嵌入；暂不支持渐进绘制、动态几何/颜色、图片和 3D。与 `-time`、`-times`、`-interval` 互斥。
+
+两种导出均由 Go 完成，无需授权密钥、Office 或额外运行时。支持范围和限制见 [PPTX_EXPORT.md](PPTX_EXPORT.md)。

@@ -5,6 +5,7 @@ import (
 	"github.com/23dd/animation/scene"
 	"github.com/23dd/animation/timeline"
 	"github.com/dop251/goja"
+	"image"
 	"os"
 	"path/filepath"
 )
@@ -16,6 +17,7 @@ type Runtime struct {
 	BaseDir  string
 	cursor   float64
 	callErr  error
+	images   map[string]image.Image
 }
 
 func New(width, height int) (*Runtime, error) {

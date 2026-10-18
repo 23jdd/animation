@@ -52,8 +52,7 @@ func New(path string, debounce time.Duration, onChange func()) (*Watcher, error)
 						continue
 					}
 				}
-				ext := strings.ToLower(filepath.Ext(e.Name))
-				if ext != ".js" && ext != ".json" && ext != ".svg" && ext != ".ttf" && ext != ".otf" && ext != ".png" && ext != ".jpg" {
+				if !watchableFile(e.Name) {
 					continue
 				}
 				if timer != nil {
@@ -82,6 +81,15 @@ func addDirectoryTree(w *fsnotify.Watcher, root string) error {
 		}
 		return w.Add(path)
 	})
+}
+
+func watchableFile(path string) bool {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".js", ".json", ".svg", ".ttf", ".otf", ".png", ".jpg", ".jpeg", ".webp", ".gif":
+		return true
+	default:
+		return false
+	}
 }
 func (w *Watcher) Close() error {
 	var err error

@@ -1,0 +1,534 @@
+{
+  "problem": {
+    "values": [
+      "-3",
+      "2",
+      "-4",
+      "5",
+      "-2",
+      "3"
+    ],
+    "operators": [
+      "+",
+      "*",
+      "+",
+      "*",
+      "+",
+      "*"
+    ]
+  },
+  "max_score": "212",
+  "best_cuts": [
+    3
+  ],
+  "chosen_cut": 3,
+  "start_vertex": 4,
+  "expression": "(((5 * ((-2) + (3 * (-3)))) + 2) * (-4))",
+  "steps": [
+    {
+      "edge": 6,
+      "left_vertices": [
+        6
+      ],
+      "right_vertices": [
+        1
+      ],
+      "left": "3",
+      "operator": "*",
+      "right": "-3",
+      "value": "-9"
+    },
+    {
+      "edge": 5,
+      "left_vertices": [
+        5
+      ],
+      "right_vertices": [
+        6,
+        1
+      ],
+      "left": "-2",
+      "operator": "+",
+      "right": "-9",
+      "value": "-11"
+    },
+    {
+      "edge": 4,
+      "left_vertices": [
+        4
+      ],
+      "right_vertices": [
+        5,
+        6,
+        1
+      ],
+      "left": "5",
+      "operator": "*",
+      "right": "-11",
+      "value": "-55"
+    },
+    {
+      "edge": 1,
+      "left_vertices": [
+        4,
+        5,
+        6,
+        1
+      ],
+      "right_vertices": [
+        2
+      ],
+      "left": "-55",
+      "operator": "+",
+      "right": "2",
+      "value": "-53"
+    },
+    {
+      "edge": 2,
+      "left_vertices": [
+        4,
+        5,
+        6,
+        1,
+        2
+      ],
+      "right_vertices": [
+        3
+      ],
+      "left": "-53",
+      "operator": "*",
+      "right": "-4",
+      "value": "212"
+    }
+  ],
+  "cuts": [
+    {
+      "edge": 1,
+      "start_vertex": 2,
+      "score": "75"
+    },
+    {
+      "edge": 2,
+      "start_vertex": 3,
+      "score": "35"
+    },
+    {
+      "edge": 3,
+      "start_vertex": 4,
+      "score": "212"
+    },
+    {
+      "edge": 4,
+      "start_vertex": 5,
+      "score": "41"
+    },
+    {
+      "edge": 5,
+      "start_vertex": 6,
+      "score": "98"
+    },
+    {
+      "edge": 6,
+      "start_vertex": 1,
+      "score": "17"
+    }
+  ],
+  "states": [
+    {
+      "start": 1,
+      "length": 1,
+      "min": "-3",
+      "max": "-3"
+    },
+    {
+      "start": 2,
+      "length": 1,
+      "min": "2",
+      "max": "2"
+    },
+    {
+      "start": 3,
+      "length": 1,
+      "min": "-4",
+      "max": "-4"
+    },
+    {
+      "start": 4,
+      "length": 1,
+      "min": "5",
+      "max": "5"
+    },
+    {
+      "start": 5,
+      "length": 1,
+      "min": "-2",
+      "max": "-2"
+    },
+    {
+      "start": 6,
+      "length": 1,
+      "min": "3",
+      "max": "3"
+    },
+    {
+      "start": 1,
+      "length": 2,
+      "min": "-1",
+      "max": "-1",
+      "split": 1,
+      "operator": "+",
+      "left": "-3",
+      "right": "2",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 2,
+      "length": 2,
+      "min": "-8",
+      "max": "-8",
+      "split": 1,
+      "operator": "*",
+      "left": "2",
+      "right": "-4",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 3,
+      "length": 2,
+      "min": "1",
+      "max": "1",
+      "split": 1,
+      "operator": "+",
+      "left": "-4",
+      "right": "5",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 4,
+      "length": 2,
+      "min": "-10",
+      "max": "-10",
+      "split": 1,
+      "operator": "*",
+      "left": "5",
+      "right": "-2",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 5,
+      "length": 2,
+      "min": "1",
+      "max": "1",
+      "split": 1,
+      "operator": "+",
+      "left": "-2",
+      "right": "3",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 6,
+      "length": 2,
+      "min": "-9",
+      "max": "-9",
+      "split": 1,
+      "operator": "*",
+      "left": "3",
+      "right": "-3",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 1,
+      "length": 3,
+      "min": "-11",
+      "max": "4",
+      "split": 2,
+      "operator": "*",
+      "left": "-1",
+      "right": "-4",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 2,
+      "length": 3,
+      "min": "-3",
+      "max": "2",
+      "split": 1,
+      "operator": "*",
+      "left": "2",
+      "right": "1",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 3,
+      "length": 3,
+      "min": "-14",
+      "max": "-2",
+      "split": 2,
+      "operator": "*",
+      "left": "1",
+      "right": "-2",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 4,
+      "length": 3,
+      "min": "-7",
+      "max": "5",
+      "split": 1,
+      "operator": "*",
+      "left": "5",
+      "right": "1",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 5,
+      "length": 3,
+      "min": "-11",
+      "max": "-3",
+      "split": 2,
+      "operator": "*",
+      "left": "1",
+      "right": "-3",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 6,
+      "length": 3,
+      "min": "-7",
+      "max": "-3",
+      "split": 1,
+      "operator": "*",
+      "left": "3",
+      "right": "-1",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 1,
+      "length": 4,
+      "min": "-6",
+      "max": "9",
+      "split": 3,
+      "operator": "+",
+      "left": "4",
+      "right": "5",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 2,
+      "length": 4,
+      "min": "-28",
+      "max": "6",
+      "split": 3,
+      "operator": "*",
+      "left": "-3",
+      "right": "-2",
+      "left_mode": "min",
+      "right_mode": "max"
+    },
+    {
+      "start": 3,
+      "length": 4,
+      "min": "-11",
+      "max": "1",
+      "split": 1,
+      "operator": "+",
+      "left": "-4",
+      "right": "5",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 4,
+      "length": 4,
+      "min": "-55",
+      "max": "21",
+      "split": 3,
+      "operator": "*",
+      "left": "-7",
+      "right": "-3",
+      "left_mode": "min",
+      "right_mode": "max"
+    },
+    {
+      "start": 5,
+      "length": 4,
+      "min": "-9",
+      "max": "-1",
+      "split": 2,
+      "operator": "*",
+      "left": "1",
+      "right": "-1",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 6,
+      "length": 4,
+      "min": "-33",
+      "max": "28",
+      "split": 3,
+      "operator": "*",
+      "left": "-7",
+      "right": "-4",
+      "left_mode": "min",
+      "right_mode": "max"
+    },
+    {
+      "start": 1,
+      "length": 5,
+      "min": "-31",
+      "max": "14",
+      "split": 2,
+      "operator": "*",
+      "left": "-1",
+      "right": "-14",
+      "left_mode": "max",
+      "right_mode": "min"
+    },
+    {
+      "start": 2,
+      "length": 5,
+      "min": "-25",
+      "max": "9",
+      "split": 4,
+      "operator": "+",
+      "left": "6",
+      "right": "3",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 3,
+      "length": 5,
+      "min": "-59",
+      "max": "33",
+      "split": 4,
+      "operator": "*",
+      "left": "-11",
+      "right": "-3",
+      "left_mode": "min",
+      "right_mode": "max"
+    },
+    {
+      "start": 4,
+      "length": 5,
+      "min": "-53",
+      "max": "23",
+      "split": 4,
+      "operator": "+",
+      "left": "21",
+      "right": "2",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 5,
+      "length": 5,
+      "min": "-35",
+      "max": "36",
+      "split": 4,
+      "operator": "*",
+      "left": "-9",
+      "right": "-4",
+      "left_mode": "min",
+      "right_mode": "max"
+    },
+    {
+      "start": 6,
+      "length": 5,
+      "min": "-28",
+      "max": "33",
+      "split": 4,
+      "operator": "+",
+      "left": "28",
+      "right": "5",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 1,
+      "length": 6,
+      "min": "-28",
+      "max": "17",
+      "split": 5,
+      "operator": "+",
+      "left": "14",
+      "right": "3",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 2,
+      "length": 6,
+      "min": "-118",
+      "max": "75",
+      "split": 5,
+      "operator": "*",
+      "left": "-25",
+      "right": "-3",
+      "left_mode": "min",
+      "right_mode": "max"
+    },
+    {
+      "start": 3,
+      "length": 6,
+      "min": "-57",
+      "max": "35",
+      "split": 5,
+      "operator": "+",
+      "left": "33",
+      "right": "2",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 4,
+      "length": 6,
+      "min": "-175",
+      "max": "212",
+      "split": 5,
+      "operator": "*",
+      "left": "-53",
+      "right": "-4",
+      "left_mode": "min",
+      "right_mode": "max"
+    },
+    {
+      "start": 5,
+      "length": 6,
+      "min": "-30",
+      "max": "41",
+      "split": 5,
+      "operator": "+",
+      "left": "36",
+      "right": "5",
+      "left_mode": "max",
+      "right_mode": "max"
+    },
+    {
+      "start": 6,
+      "length": 6,
+      "min": "-93",
+      "max": "98",
+      "split": 3,
+      "operator": "*",
+      "left": "-7",
+      "right": "-14",
+      "left_mode": "min",
+      "right_mode": "min"
+    }
+  ]
+}

@@ -31,6 +31,8 @@ func Run(args []string, out io.Writer) error {
 		return runRender(args[1:], "gif")
 	case "mp4":
 		return runRender(args[1:], "mp4")
+	case "ppt", "pptx":
+		return runRender(args[1:], "pptx")
 	case "help", "-h", "--help":
 		return usage(out)
 	default:
@@ -38,7 +40,7 @@ func Run(args []string, out io.Writer) error {
 	}
 }
 func usage(w io.Writer) error {
-	_, err := fmt.Fprintln(w, "Animation engine\n\nUsage:\n  anim preview [options] scene.js\n  anim render  [options] scene.js output.png\n  anim gif     [options] scene.js output.gif\n  anim mp4     [options] scene.js output.mp4\n\nOptions: -width 1280 -height 720 -fps 60 -time <seconds>\nExport only: -scale 1 (pixel multiplier; preserves scene layout)")
+	_, err := fmt.Fprintln(w, "Animation engine\n\nUsage:\n  anim preview [options] scene.js\n  anim render  [options] scene.js output.png\n  anim gif     [options] scene.js output.gif\n  anim mp4     [options] scene.js output.mp4\n  anim pptx    [options] scene.js output.pptx\n  anim ppt     [options] scene.js output.pptx\n\nOptions: -width 1280 -height 720 -fps 60 -time <seconds>\nExport only: -scale 1 (pixel multiplier; preserves scene layout)\nPPTX: -time 0 OR -times 0,2,4 OR -interval 5; default -scale 2\nPPTX -native: editable objects and native animation on one slide; -fps sets keyframe sampling.\nPPTX uses pure Go; no license key or external runtime required.")
 	return err
 }
 
@@ -46,6 +48,10 @@ type options struct {
 	width, height int
 	fps, at       float64
 	scale         float64
+	pptxTimes     string
+	pptxInterval  float64
+	pptxSelection string
+	pptxNative    bool
 }
 
 func flags(name string, args []string) (options, []string, error) {
@@ -57,8 +63,14 @@ func flags(name string, args []string) (options, []string, error) {
 	f.Float64Var(&o.fps, "fps", 60, "frames per second")
 	f.Float64Var(&o.at, "time", 0, "render time")
 	o.scale = 1
+	if name == "pptx" {
+		o.scale = 2
+		f.BoolVar(&o.pptxNative, "native", false, "export editable shapes and native PowerPoint animations")
+		f.StringVar(&o.pptxTimes, "times", "", "PPTX frame times, comma-separated seconds")
+		f.Float64Var(&o.pptxInterval, "interval", 0, "PPTX frame sampling interval in seconds")
+	}
 	if name != "preview" {
-		f.Float64Var(&o.scale, "scale", 1, "export pixel scale (preserves scene layout)")
+		f.Float64Var(&o.scale, "scale", o.scale, "export pixel scale (preserves scene layout)")
 	}
 	if err := f.Parse(args); err != nil {
 		return o, nil, err
@@ -68,6 +80,21 @@ func flags(name string, args []string) (options, []string, error) {
 	}
 	if o.scale <= 0 || math.IsNaN(o.scale) || math.IsInf(o.scale, 0) {
 		return o, nil, errors.New("scale must be positive and finite")
+	}
+	if name == "pptx" {
+		selections := 0
+		f.Visit(func(flag *flag.Flag) {
+			if flag.Name == "time" || flag.Name == "times" || flag.Name == "interval" {
+				selections++
+				o.pptxSelection = flag.Name
+			}
+		})
+		if selections > 1 {
+			return o, nil, errors.New("PPTX -time, -times and -interval are mutually exclusive")
+		}
+		if o.pptxNative && selections > 0 {
+			return o, nil, errors.New("PPTX -native exports the entire timeline; cannot combine with -time, -times or -interval")
+		}
 	}
 	return o, f.Args(), nil
 }
@@ -108,6 +135,9 @@ func runRender(args []string, kind string) error {
 	if err != nil {
 		return err
 	}
+	if kind == "pptx" && o.pptxNative {
+		return animexport.PPTXNative(rest[1], rt.Scene, rt.Timeline, o.fps)
+	}
 	outputWidth := math.Round(float64(o.width) * o.scale)
 	outputHeight := math.Round(float64(o.height) * o.scale)
 	if outputWidth < 1 || outputHeight < 1 || outputWidth > 65535 || outputHeight > 65535 {
@@ -115,6 +145,16 @@ func runRender(args []string, kind string) error {
 	}
 	if kind == "mp4" && (int(outputWidth)%2 != 0 || int(outputHeight)%2 != 0) {
 		return errors.New("MP4 output width and height must be even")
+	}
+	var slideTimes []float64
+	if kind == "pptx" {
+		if outputWidth*outputHeight > 64_000_000 {
+			return errors.New("PPTX frame exceeds 64 million pixels; reduce -scale")
+		}
+		slideTimes, err = pptxFrameTimes(o, rt.Timeline.Duration())
+		if err != nil {
+			return err
+		}
 	}
 	renderer := ggrenderer.New(o.width, o.height)
 	if err := renderer.Err(); err != nil {
@@ -124,6 +164,13 @@ func runRender(args []string, kind string) error {
 	switch kind {
 	case "png":
 		return animexport.PNG(rest[1], rt.Scene, rt.Timeline, renderer, o.at)
+	case "pptx":
+		return animexport.PPTXWithProgress(rest[1], rt.Scene, rt.Timeline, renderer, slideTimes, func(done, total int) {
+			fmt.Fprintf(os.Stderr, "\rPPTX %d/%d", done, total)
+			if done == total {
+				fmt.Fprintln(os.Stderr)
+			}
+		})
 	case "gif":
 		started, last := time.Now(), time.Time{}
 		return animexport.GIFWithProgress(rest[1], rt.Scene, rt.Timeline, renderer, o.fps, func(done, total int) {

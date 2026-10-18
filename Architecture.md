@@ -1751,3 +1751,97 @@ Export
 ```
 
 相互解耦，使动画系统、脚本系统与渲染后端能够独立扩展。
+
+---
+
+# 38. 3D Extension
+
+3D 能力沿用现有分层，不把投影或光照逻辑放入 JavaScript：
+
+```text
+JavaScript
+   ↓
+Mesh3D / Camera3D
+   ↓
+Vec3 / Transform3D
+   ↓
+Renderer
+   ├── Perspective Projection
+   ├── Near-plane Clipping
+   ├── Back-face Culling
+   ├── Triangle Rasterization + Z-buffer
+   ├── Smooth / Specular Lighting
+   ├── Distance Fog
+   └── Screen-space Glow
+   ↓
+image.RGBA
+```
+
+核心约束：
+
+- `Mesh3D` 保存顶点、面、三维变换与材质状态。
+- `Camera3D` 属于 Scene，保存视点、观察目标、FOV 和光照参数。
+- Animation 只修改 `Transform3D` 或 Camera 状态，不依赖 gg。
+- Renderer 才负责投影、近裁剪、背面剔除、逐像素深度测试、光照与最终栅格化。
+- 连续加入 Scene 的多个 Mesh 共享深度缓冲；不透明三角形使用 Z-buffer，透明三角形在不透明深度测试后按距离混合。
+- 曲面使用平滑顶点法线，光照结果经过透视正确插值；材质高光和距离雾只存在于 Renderer 层。
+- 原有 2D Mobject 与 API 保持兼容，可用于背景和 UI 覆盖层。
+
+## 39. Bitmap Images
+
+图片沿用相同的分层，不让 JavaScript 承担逐帧读取和像素绘制：
+
+```text
+image("./assets/photo.png", options)
+   ↓
+Script Runtime：相对脚本路径解析、文件/尺寸校验、解码、运行时缓存
+   ↓
+Mobject.Image：不可变像素引用、逻辑显示框、适配方式、公共动画状态
+   ↓
+Renderer：contain / cover / stretch、透明度合成、仿射变换、裁剪
+   ↓
+Preview / PNG / GIF / MP4
+```
+
+- `mobject.Image` 不依赖文件路径、gg 或 Ebitengine；Go 调用方可直接提供 `image.Image`。
+- Script 层支持 PNG、JPEG、WebP 和 GIF 静态首帧，文件和像素预算在解码前检查。
+- 同一个 Runtime 按解析后的文件路径复用像素，热重载创建新 Runtime，避免全局缓存过期。
+- Renderer 不读取文件，不为了淡入淡出复制整张图片；源透明度、对象透明度和父组透明度叠加。
+- 显示框以对象中心为锚点，继承组、相机和导出分辨率变换；cover 和 create 的裁剪也跟随变换。
+- `create` / `uncreate` 修改已有 `DrawProgress`，Renderer 将它解释为横向揭示进度；移动、旋转、缩放和淡入淡出无需新增 Animation 类型。
+
+## 40. PPTX Export
+
+PPTX 不引入 Office SDK，通过标准库直接打包 OOXML：
+
+```text
+CLI -time / -times / -interval
+   ↓
+Scene + Timeline + Renderer：按绝对时间生成画面
+   ↓
+image/png：每帧编码
+   ↓
+archive/zip + encoding/xml：页面、图片、备注、母版、布局、主题与关系
+   ↓
+临时 PPTX 写入成功后发布至目标路径
+```
+
+导出器不依赖具体 Renderer，不在 JavaScript 中调度绘制循环，不改变原场景排版。分辨率和幻灯片物理尺寸相互独立。图片逐帧写入包内，无须中间 PNG 文件，也不缓存整份演示文稿的像素数据。所有输入在导出前校验，失败时保留原文件，并恢复原时间轴状态。
+
+### Native PPTX
+
+`pptx -native` 使用独立的导出后端，不经过 Renderer，也不把整页栅格化：
+
+```text
+Scene + Timeline.Seek + Scene.Update
+   ↓
+有界状态采样 / 组变换展平 / 静态几何一致性检查
+   ↓
+DrawingML 原生形状、路径与可编辑文字
+   +
+PresentationML timing：位置关键帧、animScale、animRot、fade
+   ↓
+一页自动播放的 PPTX
+```
+
+只消费动画核心的公开状态，不让核心依赖 Office。缓动通过采样近似，不支持的状态变化报错；文字按字体名称引用。两类导出共用 ZIP、母版、布局、备注与安全发布逻辑，备注母版使用独立主题 part，避免 PowerPoint 拒绝打开共享主题的包。
